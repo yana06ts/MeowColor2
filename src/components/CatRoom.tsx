@@ -545,6 +545,8 @@ export function CatRoom({
         flipped: false,
       };
       setPlacedCats([defaultCat]);
+    } else {
+      setPlacedCats([]);
     }
   }, [completedPuzzles]);
 
@@ -736,7 +738,7 @@ export function CatRoom({
       case "luxury_tower":
         return <div className="text-5xl filter drop-shadow-md hover:scale-105 duration-200 select-none">🏰</div>;
       case "golden_fish":
-        return <div className="text-3xl filter drop-shadow animate-bounce select-none font-pixel">🥣</div>;
+        return <div className="text-3xl filter drop-shadow hover:scale-105 duration-200 select-none font-pixel">🥣</div>;
       case "tunnel":
         return <div className="text-4xl filter drop-shadow hover:scale-105 duration-200 select-none font-pixel">📦</div>;
       case "cactus_scratch":
@@ -926,6 +928,35 @@ export function CatRoom({
           </button>
         </div>
       </div>
+
+      {/* Super Cat Progress Bar */}
+      {(() => {
+        const currentLvl = LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
+        if (!currentLvl) return null;
+
+        const cycleLevels = LEVEL_SEQUENCE.filter((item) => item.cycleNumber === currentLvl.cycleNumber);
+        // Completed in current cycle
+        const completedInCycle = cycleLevels.filter((item) => completedPuzzles.includes(item.puzzleId)).length;
+        const totalInCycle = cycleLevels.length;
+        const percent = Math.min(100, Math.floor((completedInCycle / totalInCycle) * 100));
+        const superCatTemplate = puzzleTemplates.find(p => p.id === cycleLevels.find(l => l.isSuper)?.puzzleId);
+        const catName = superCatTemplate ? superCatTemplate.name.replace(/[🐾🐈‍⬛📦👑💙🧡]/g, "").trim() : "Супер-Кота";
+
+        return (
+          <div className="bg-amber-50/95 border-b border-amber-200/50 px-4 py-2 flex flex-col gap-1 select-none z-10 shadow-xs shrink-0">
+            <div className="flex justify-between items-center text-[9px] font-pixel text-amber-900 font-extrabold uppercase">
+              <span className="flex items-center gap-1">👑 До {catName}: {completedInCycle}/{totalInCycle}</span>
+              <span className="text-[8.5px] text-rose-600 font-bold">Осталось: {Math.max(0, totalInCycle - completedInCycle)}</span>
+            </div>
+            <div className="w-full bg-amber-200/40 h-2 rounded-full overflow-hidden border border-amber-300/30">
+              <div
+                className="bg-gradient-to-r from-amber-400 via-amber-500 to-rose-400 h-full rounded-full transition-all duration-500"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Main Interactive Stage drawing view */}
       <div
@@ -1373,32 +1404,32 @@ export function CatRoom({
         })}
       </div>
 
+      {/* Play Level Action Row (separated, positioned higher above the available cats drawer) */}
+      {(() => {
+        const currentLvl = LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
+        const puzzle = puzzleTemplates.find(p => p.id === currentLvl.puzzleId) || GACHA_EXCLUSIVE_PUZZLES.find(p => p.id === currentLvl.puzzleId);
+        const currentPuzzleName = puzzle?.name.replace(/[🐾🐈‍⬛📦]/g, "").trim() || "Новый рисунок";
+        return (
+          <div className="bg-gradient-to-r from-amber-100/90 to-rose-100/90 border-t border-b border-rose-200/50 px-4 py-2.5 flex items-center justify-between shrink-0 select-none shadow-xs">
+            <div className="flex flex-col">
+              <span className="text-[7.5px] font-pixel text-amber-800 uppercase font-bold tracking-wider">ТЕКУЩИЙ УРОВЕНЬ {currentLevelIndex + 1}</span>
+              <span className="text-[10px] font-pixel font-black text-rose-900 uppercase mt-0.5 truncate max-w-[200px]">
+                {currentPuzzleName}
+              </span>
+            </div>
+            <button
+              onClick={onPlayLevel}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:scale-103 active:scale-97 text-white font-pixel font-bold py-1.5 px-4 rounded-xl shadow-md border border-amber-300 cursor-pointer text-[10px] uppercase tracking-wide transition-all"
+            >
+              <span>Начать играть</span>
+              <span className="bg-white/20 px-1.5 py-0.5 rounded">▶</span>
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Tray of unlocked cats at the bottom, clicking a cat spawns it in the room */}
       <div className="bg-white/95 border-t border-rose-100 p-4 shrink-0 flex flex-col gap-3 shadow-inner">
-        {/* Play Level Action Row */}
-        {(() => {
-          const currentLvl = LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
-          const puzzle = puzzleTemplates.find(p => p.id === currentLvl.puzzleId) || GACHA_EXCLUSIVE_PUZZLES.find(p => p.id === currentLvl.puzzleId);
-          const currentPuzzleName = puzzle?.name.replace(/[🐾🐈‍⬛📦]/g, "").trim() || "Новый рисунок";
-          return (
-            <div className="flex items-center justify-between bg-gradient-to-r from-amber-50 to-rose-50 border border-rose-100 p-2.5 rounded-2xl">
-              <div className="flex flex-col select-none">
-                <span className="text-[7.5px] font-pixel text-amber-700 uppercase font-bold tracking-wider">УРОВЕНЬ {currentLevelIndex + 1}</span>
-                <span className="text-[10px] font-pixel font-black text-rose-800 uppercase mt-0.5 truncate max-w-[170px]">
-                  {currentPuzzleName}
-                </span>
-              </div>
-              <button
-                onClick={onPlayLevel}
-                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:scale-102 active:scale-97 text-white font-pixel font-bold py-1.5 px-3.5 rounded-xl shadow-md border border-amber-200 cursor-pointer text-[9.5px] uppercase tracking-wide transition-all"
-              >
-                <span>Играть</span>
-                <span className="bg-white/20 px-1.5 py-0.5 rounded">▶</span>
-              </button>
-            </div>
-          );
-        })()}
-
         <label className="text-[10px] font-pixel text-rose-500 uppercase tracking-wide flex items-center gap-1">
           <Smile className="w-3.5 h-3.5 text-rose-400" />
           Доступные Котики ({unlockedCats.length}):

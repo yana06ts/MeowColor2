@@ -423,7 +423,6 @@ export default function App() {
               </div>
               <div className="flex flex-col leading-none">
                 <span className="text-xs font-pixel tracking-wider scale-90 origin-left">MEOWCOLOR</span>
-                <span className="text-[9px] font-medium text-rose-100 uppercase mt-0.5">Линейное приключение</span>
               </div>
             </div>
 
@@ -679,19 +678,25 @@ export default function App() {
               <button
                 id="claim-reward-modal-btn"
                 onClick={() => {
+                  const isSuper = LEVEL_SEQUENCE[currentLevelIndex]?.isSuper;
+
                   const nextIndex = (currentLevelIndex + 1) % LEVEL_SEQUENCE.length;
                   setCurrentLevelIndex(nextIndex);
                   localStorage.setItem("meowcolor_level_index", nextIndex.toString());
 
                   setLevelCompleteModal(null);
                   
-                  // Auto launch next level immediately
-                  const nextLvlItem = LEVEL_SEQUENCE[nextIndex];
-                  const nextPuzzle = PUZZLE_TEMPLATES.find(p => p.id === nextLvlItem.puzzleId) || GACHA_EXCLUSIVE_PUZZLES.find(p => p.id === nextLvlItem.puzzleId);
-                  if (nextPuzzle) {
-                    handleSelectPuzzle(nextPuzzle);
-                  } else {
+                  if (isSuper) {
                     setSelectedPuzzle(null);
+                  } else {
+                    // Auto launch next level immediately
+                    const nextLvlItem = LEVEL_SEQUENCE[nextIndex];
+                    const nextPuzzle = PUZZLE_TEMPLATES.find(p => p.id === nextLvlItem.puzzleId) || GACHA_EXCLUSIVE_PUZZLES.find(p => p.id === nextLvlItem.puzzleId);
+                    if (nextPuzzle) {
+                      handleSelectPuzzle(nextPuzzle);
+                    } else {
+                      setSelectedPuzzle(null);
+                    }
                   }
                   SOUNDS.playPop(1.1);
                 }}
