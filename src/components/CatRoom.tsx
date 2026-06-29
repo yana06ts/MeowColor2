@@ -528,7 +528,14 @@ export function CatRoom({
     const saved = localStorage.getItem("meowcolor_placed_cats");
     if (saved) {
       try {
-        setPlacedCats(JSON.parse(saved));
+        const loaded = JSON.parse(saved) as PlacedCat[];
+        const validated = loaded.filter(c => {
+          if (c.type === "cat") {
+            return unlockedCats.some(uc => uc.id === c.puzzleId);
+          }
+          return true;
+        });
+        setPlacedCats(validated);
       } catch (e) {
         console.error(e);
       }
@@ -935,18 +942,38 @@ export function CatRoom({
         if (!currentLvl) return null;
 
         const cycleLevels = LEVEL_SEQUENCE.filter((item) => item.cycleNumber === currentLvl.cycleNumber);
-        // Completed in current cycle
-        const completedInCycle = cycleLevels.filter((item) => completedPuzzles.includes(item.puzzleId)).length;
-        const totalInCycle = cycleLevels.length;
-        const percent = Math.min(100, Math.floor((completedInCycle / totalInCycle) * 100));
-        const superCatTemplate = puzzleTemplates.find(p => p.id === cycleLevels.find(l => l.isSuper)?.puzzleId);
+        const regularLevels = cycleLevels.filter((item) => !item.isSuper);
+        const superCatLvl = cycleLevels.find((item) => item.isSuper);
+        const superCatTemplate = puzzleTemplates.find(p => p.id === superCatLvl?.puzzleId);
         const catName = superCatTemplate ? superCatTemplate.name.replace(/[🐾🐈‍⬛📦👑💙🧡]/g, "").trim() : "Супер-Кота";
+
+        if (currentLvl.isSuper) {
+          return (
+            <div className="bg-amber-100/90 border-b border-amber-300 px-4 py-2.5 flex flex-col gap-1 select-none z-10 shadow-sm shrink-0 animate-pulse">
+              <div className="flex justify-between items-center text-[9px] font-pixel text-amber-950 font-extrabold uppercase">
+                <span className="flex items-center gap-1">👑 РИСУЕМ СУПЕР-КОТА: {catName}! 👑</span>
+                <span className="text-[8.5px] text-amber-700 font-black">ФИНАЛ ГЛАВЫ ✨</span>
+              </div>
+              <div className="w-full bg-amber-200/50 h-2.5 rounded-full overflow-hidden border border-amber-400">
+                <div
+                  className="bg-gradient-to-r from-amber-400 via-amber-500 to-rose-500 h-full rounded-full shadow-inner"
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+          );
+        }
+
+        const completedRegular = regularLevels.filter((item) => completedPuzzles.includes(item.puzzleId)).length;
+        const totalRegular = regularLevels.length;
+        const percent = Math.min(100, Math.floor((completedRegular / totalRegular) * 100));
+        const remaining = totalRegular - completedRegular;
 
         return (
           <div className="bg-amber-50/95 border-b border-amber-200/50 px-4 py-2 flex flex-col gap-1 select-none z-10 shadow-xs shrink-0">
             <div className="flex justify-between items-center text-[9px] font-pixel text-amber-900 font-extrabold uppercase">
-              <span className="flex items-center gap-1">👑 До {catName}: {completedInCycle}/{totalInCycle}</span>
-              <span className="text-[8.5px] text-rose-600 font-bold">Осталось: {Math.max(0, totalInCycle - completedInCycle)}</span>
+              <span className="flex items-center gap-1">👑 До {catName}: {completedRegular}/{totalRegular}</span>
+              <span className="text-[8.5px] text-rose-600 font-bold">Осталось уровней: {remaining}</span>
             </div>
             <div className="w-full bg-amber-200/40 h-2 rounded-full overflow-hidden border border-amber-300/30">
               <div
