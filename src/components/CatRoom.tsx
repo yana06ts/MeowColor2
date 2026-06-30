@@ -544,20 +544,8 @@ export function CatRoom({
         setPlacedCats(validated);
       } catch (e) {
         console.error(e);
+        setPlacedCats([]);
       }
-    } else if (unlockedCats.length > 0) {
-      // Auto place first unlocked cat in the coordinates
-      const defaultCat: PlacedCat = {
-        id: `placed_${unlockedCats[0].id}`,
-        type: "cat",
-        puzzleId: unlockedCats[0].id,
-        name: unlockedCats[0].name.replace(/[🐾🐈‍⬛📦]/g, "").trim(),
-        x: 45,
-        y: 65,
-        isSleeping: false,
-        flipped: false,
-      };
-      setPlacedCats([defaultCat]);
     } else {
       setPlacedCats([]);
     }
