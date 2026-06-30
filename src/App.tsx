@@ -84,6 +84,7 @@ export default function App() {
   const [soundOn, setSoundOn] = useState<boolean>(true);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showTutorial, setShowTutorial] = useState<boolean>(false);
+  const [currentOnboardingSlide, setCurrentOnboardingSlide] = useState<number | null>(null);
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
   const [showAchievementsModal, setShowAchievementsModal] = useState<boolean>(false);
   const [levelCompleteModal, setLevelCompleteModal] = useState<{ active: boolean; yarnEarned: number } | null>(null);
@@ -210,7 +211,7 @@ export default function App() {
   useEffect(() => {
     if (gameStarted && activeTab === "room") {
       const isHouseTutorialDone = localStorage.getItem("meowcolor_tutorial_house") === "completed";
-      const hasUnplacedCats = completedPuzzles.length > 0 || gachaUnlockedCats.length > 0;
+      const hasUnplacedCats = gachaUnlockedCats.length > 0;
       
       const savedPlaced = localStorage.getItem("meowcolor_placed_cats");
       let placedCount = 0;
@@ -524,7 +525,7 @@ export default function App() {
     ...GACHA_EXCLUSIVE_PUZZLES
   ];
 
-  const isTabsLocked = completedPuzzles.length === 0;
+  const isTabsLocked = completedPuzzles.length < 3;
 
   return (
     <div className="h-[100dvh] w-screen bg-[#F0E6D2] font-sans antialiased text-slate-800 flex justify-center items-center overflow-hidden">
@@ -566,12 +567,17 @@ export default function App() {
                 onClick={() => {
                   setGameStarted(true);
                   SOUNDS.playCompleteLevel(); // Воспроизведение звука запуска
-                  if (completedPuzzles.length === 0) {
-                    const firstLvl = LEVEL_SEQUENCE[0];
-                    const firstPuzzle = allAvailablePuzzles.find((p) => p.id === firstLvl.puzzleId);
-                    if (firstPuzzle) {
-                      handleSelectPuzzle(firstPuzzle);
-                      setTutorialStep(1);
+                  const isOnboardingDone = localStorage.getItem("meowcolor_onboarding_done") === "true";
+                  if (!isOnboardingDone) {
+                    setCurrentOnboardingSlide(0); // Start onboarding slideshow!
+                  } else {
+                    if (completedPuzzles.length === 0) {
+                      const firstLvl = LEVEL_SEQUENCE[0];
+                      const firstPuzzle = allAvailablePuzzles.find((p) => p.id === firstLvl.puzzleId);
+                      if (firstPuzzle) {
+                        handleSelectPuzzle(firstPuzzle);
+                        setTutorialStep(1);
+                      }
                     }
                   }
                 }}
@@ -798,11 +804,11 @@ export default function App() {
                 {/* Coloring tutorial bubble */}
                 {tutorialStep !== null && (
                   <div className="absolute inset-x-0 bottom-4 z-50 flex flex-col items-center px-4 pointer-events-auto">
-                    <div className="bg-slate-950/95 text-white p-3.5 rounded-2xl border border-rose-300/30 shadow-2xl max-w-xs text-center animate-fade-in flex flex-col gap-1.5 select-none relative">
-                      <span className="text-[9px] font-pixel text-rose-300 uppercase font-bold tracking-wider">
-                        🐱 ШКОЛА РАСКРАСКИ 🐾
-                      </span>
-                      <p className="text-[9px] leading-relaxed font-semibold text-slate-200">
+                    <div className="bg-[#FFF6E5] text-[#5C3A21] p-3.5 rounded-2xl border-2 border-amber-300 shadow-2xl max-w-xs text-center animate-fade-in flex flex-col gap-1.5 select-none relative">
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center justify-center bg-amber-400 text-amber-950 text-[7.5px] font-pixel font-bold px-2 py-0.5 rounded-full border border-amber-200 shadow-xs whitespace-nowrap">
+                        🐱 ПОМОЩНИК МЯУ 🐾
+                      </div>
+                      <p className="text-[10px] leading-relaxed font-semibold mt-1">
                         {tutorialStep === 1 && "Мяу! Нажми на круглую кнопку с цифрой '1' в палитре внизу экрана, чтобы выбрать первый цвет! 👇"}
                         {tutorialStep === 2 && "Мур-р! Отлично! Теперь найди на рисунке серые клетки с цифрой '1' и тапай по ним, чтобы закрасить! 🖌️🐾"}
                         {tutorialStep === 3 && "Замечательно! Ты красишь как настоящий мастер! ✨ Нажимай на другие цвета или пользуйся волшебной палочкой 🪄 и бомбочкой 💣 для супер-раскрашивания!"}
@@ -815,7 +821,7 @@ export default function App() {
                               setTutorialStep(null);
                               SOUNDS.playCompleteLevel();
                             }}
-                            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-1 rounded-xl text-[8.5px] font-pixel uppercase tracking-wide cursor-pointer shadow-xs active:scale-95 border-0"
+                            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-1.5 rounded-xl text-[8.5px] font-pixel uppercase tracking-wide cursor-pointer shadow-xs active:scale-95 border border-emerald-300/30"
                           >
                             Понятно, мур! 🐾
                           </button>
@@ -1087,31 +1093,31 @@ export default function App() {
                     onPlayLevel={() => {}}
                   />
 
-                  {/* House tutorial bubble */}
-                  {houseTutorialStep !== null && (
-                    <div className="absolute inset-x-0 bottom-4 z-50 flex flex-col items-center px-4 pointer-events-auto">
-                      <div className="bg-slate-950/95 text-white p-3.5 rounded-2xl border border-amber-300/30 shadow-2xl max-w-xs text-center animate-fade-in flex flex-col gap-1.5 select-none relative">
-                        <span className="text-[9px] font-pixel text-amber-300 uppercase font-bold tracking-wider">
-                          🏠 КОТО-ДОМ ТУТОРИАЛ 🐾
-                        </span>
-                        <p className="text-[9px] leading-relaxed font-semibold text-slate-200">
-                          {houseTutorialStep === 1 && "Смотри! Твоя комната пуста, но у тебя есть свободный котик! 🐱 Нажми на котика со значком «Призвать» на нижней полке, чтобы впустить его в домик! 👇"}
-                          {houseTutorialStep === 2 && "Отлично! Твой котик появился в комнате! Теперь зажми его и перетащи на мягкий круглый коврик в центре! 🧶🐾"}
-                          {houseTutorialStep === 3 && "Ура! Теперь котик счастлив на теплом коврике! Тапай по котику, чтобы погладить его, получить мотки пряжи и услышать милое «Мяу»! 🥰💖"}
-                        </p>
-                        <div className="flex justify-center mt-1">
-                          {houseTutorialStep === 3 ? (
-                            <button
-                              onClick={() => {
-                                localStorage.setItem("meowcolor_tutorial_house", "completed");
-                                setHouseTutorialStep(null);
-                                SOUNDS.playCompleteLevel();
-                              }}
-                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-1 rounded-xl text-[8.5px] font-pixel uppercase tracking-wide cursor-pointer shadow-xs active:scale-95 border-0"
-                            >
-                              Спасибо, мур! 🐾
-                            </button>
-                          ) : (
+                   {/* House tutorial bubble */}
+                   {houseTutorialStep !== null && (
+                     <div className="absolute inset-x-0 bottom-4 z-50 flex flex-col items-center px-4 pointer-events-auto">
+                       <div className="bg-[#FFF6E5] text-[#5C3A21] p-3.5 rounded-2xl border-2 border-amber-300 shadow-2xl max-w-xs text-center animate-fade-in flex flex-col gap-1.5 select-none relative">
+                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center justify-center bg-amber-400 text-amber-950 text-[7.5px] font-pixel font-bold px-2 py-0.5 rounded-full border border-amber-200 shadow-xs whitespace-nowrap">
+                           🏠 УЮТНЫЙ ДОМ КОТИКОВ 🐾
+                         </div>
+                         <p className="text-[10px] leading-relaxed font-semibold mt-1">
+                           {houseTutorialStep === 1 && "Смотри! Твоя комната пуста, но у тебя есть свободный котик! 🐱 Нажми на котика со значком «Призвать» на нижней полке, чтобы впустить его в домик! 👇"}
+                           {houseTutorialStep === 2 && "Отлично! Твой котик появился в комнате! Теперь зажми его и перетащи на мягкий круглый коврик в центре! 🧶🐾"}
+                           {houseTutorialStep === 3 && "Ура! Теперь котик счастлив на теплом коврике! Тапай по котику, чтобы погладить его, получить мотки пряжи и услышать милое «Мяу»! 🥰💖"}
+                         </p>
+                         <div className="flex justify-center mt-1">
+                           {houseTutorialStep === 3 ? (
+                             <button
+                               onClick={() => {
+                                 localStorage.setItem("meowcolor_tutorial_house", "completed");
+                                 setHouseTutorialStep(null);
+                                 SOUNDS.playCompleteLevel();
+                               }}
+                               className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-1.5 rounded-xl text-[8.5px] font-pixel uppercase tracking-wide cursor-pointer shadow-xs active:scale-95 border border-emerald-300/30"
+                             >
+                               Ура, мяу! 🥰
+                             </button>
+                           ) : (
                             <span className="text-xs animate-bounce pointer-events-none select-none">
                               👇
                             </span>
@@ -1135,6 +1141,15 @@ export default function App() {
                             Перетащи сюда! 🧶
                           </div>
                           <span className="text-3.5xl">🎯</span>
+                        </div>
+                      )}
+
+                      {houseTutorialStep === 3 && (
+                        <div className="absolute bottom-[240px] left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-40 pointer-events-none">
+                          <div className="bg-emerald-500 text-slate-950 font-pixel font-bold text-[7.5px] px-2 py-0.5 rounded-full shadow-md uppercase tracking-wide mb-1 border border-emerald-300">
+                            Кликни по котику! 👇🥰
+                          </div>
+                          <span className="text-2xl filter drop-shadow-md">👇</span>
                         </div>
                       )}
                     </div>
@@ -1604,16 +1619,16 @@ export default function App() {
         </main>
 
         {/* Step 2 Tutorial: Guide to House */}
-        {completedPuzzles.length === 1 && activeTab !== "room" && !selectedPuzzle && !localStorage.getItem("meowcolor_tutorial_house") && (
+        {completedPuzzles.length >= 3 && gachaUnlockedCats.length > 0 && activeTab !== "room" && !selectedPuzzle && !localStorage.getItem("meowcolor_tutorial_house") && (
           <div className="absolute inset-x-0 top-0 bottom-14 bg-slate-900/40 z-25 pointer-events-none flex flex-col justify-end">
-            <div className="bg-slate-950/95 border border-amber-300 text-white p-3.5 rounded-2xl shadow-2xl mx-4 mb-3 pointer-events-auto text-center flex flex-col gap-1 select-none relative animate-fade-in">
-              <span className="text-[9px] font-pixel text-amber-300 uppercase font-bold tracking-wider">
+            <div className="bg-[#FFF6E5] border-2 border-amber-300 text-amber-950 p-3.5 rounded-2xl shadow-2xl mx-4 mb-3 pointer-events-auto text-center flex flex-col gap-1.5 select-none relative animate-fade-in">
+              <span className="text-[9px] font-pixel text-amber-700 uppercase font-bold tracking-wider">
                 Шаг 2: Впусти котика в дом! 🏠🐾
               </span>
-              <p className="text-[9.5px] font-semibold text-slate-200 leading-relaxed">
-                Ура! Твой первый рисунок готов! Котик ожил и хочет в свой новый уютный дом. Нажми на вкладку «Домик» внизу! 👇
+              <p className="text-[10px] font-semibold text-slate-800 leading-relaxed">
+                Ура! У тебя появился первый котик! Он очень хочет погулять в твоей новой уютной комнате. Нажми на вкладку «Домик» внизу! 👇
               </p>
-              <div className="absolute -bottom-1.5 right-[10%] w-3 h-3 bg-slate-950 border-r border-b border-amber-300 rotate-45" />
+              <div className="absolute -bottom-1.5 right-[10%] w-3 h-3 bg-[#FFF6E5] border-r border-b border-amber-300 rotate-45" />
             </div>
             
             {/* Bouncing Hand / Arrow over Room button (5th tab, around bottom-right) */}
@@ -1634,7 +1649,7 @@ export default function App() {
               onClick={() => {
                 if (isTabsLocked) {
                   SOUNDS.playError();
-                  alert("Заблокировано! 🔒 Пройди 1-й уровень, чтобы открыть достижения!");
+                  alert("Заблокировано! 🔒 Пройди 3 уровня, чтобы открыть достижения!");
                   return;
                 }
                 setActiveTab("achievements");
@@ -1668,7 +1683,7 @@ export default function App() {
               onClick={() => {
                 if (isTabsLocked) {
                   SOUNDS.playError();
-                  alert("Заблокировано! 🔒 Пройди 1-й уровень, чтобы открыть лавку украшений!");
+                  alert("Заблокировано! 🔒 Пройди 3 уровня, чтобы открыть лавку украшений!");
                   return;
                 }
                 setActiveTab("shop");
@@ -1726,7 +1741,7 @@ export default function App() {
               onClick={() => {
                 if (isTabsLocked) {
                   SOUNDS.playError();
-                  alert("Заблокировано! 🔒 Пройди 1-й уровень, чтобы открыть автомат удачи!");
+                  alert("Заблокировано! 🔒 Пройди 3 уровня, чтобы открыть автомат удачи!");
                   return;
                 }
                 setActiveTab("gacha");
@@ -1760,7 +1775,7 @@ export default function App() {
               onClick={() => {
                 if (isTabsLocked) {
                   SOUNDS.playError();
-                  alert("Заблокировано! 🔒 Пройди 1-й уровень, чтобы открыть домик котиков!");
+                  alert("Заблокировано! 🔒 Пройди 3 уровня, чтобы открыть домик котиков!");
                   return;
                 }
                 setActiveTab("room");
@@ -2321,6 +2336,149 @@ export default function App() {
         )}
 
           </>
+        )}
+
+        {/* Beautiful Onboarding Walkthrough Tutorial */}
+        {currentOnboardingSlide !== null && (
+          <div className="absolute inset-0 z-[100] bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 select-none animate-fade-in">
+            <div className="bg-[#FFFDF9] border-4 border-[#C19A6C] rounded-[32px] p-6 max-w-sm w-full shadow-2xl text-slate-800 relative flex flex-col items-center border-double">
+              
+              {/* Notebook binding accent at top */}
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                <div className="w-3 h-6 bg-slate-400 rounded-full border border-slate-600 shadow-sm" />
+                <div className="w-3 h-6 bg-slate-400 rounded-full border border-slate-600 shadow-sm" />
+                <div className="w-3 h-6 bg-slate-400 rounded-full border border-slate-600 shadow-sm" />
+              </div>
+
+              {/* Step indicator */}
+              <div className="flex gap-1 mb-4 mt-1">
+                {[0, 1, 2].map((s) => (
+                  <div
+                    key={s}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      s === currentOnboardingSlide ? "w-6 bg-amber-500" : "w-2 bg-slate-200"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* SLIDE CONTENT */}
+              {currentOnboardingSlide === 0 && (
+                <div className="flex flex-col items-center text-center animate-fade-in">
+                  <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mb-4 border-2 border-rose-200 shadow-inner animate-pulse">
+                    <span className="text-4xl">🐱</span>
+                  </div>
+                  <h3 className="text-base font-pixel text-amber-700 uppercase font-black tracking-wide mb-2.5">
+                    Привет, Лапки! 🐾
+                  </h3>
+                  <p className="text-xs font-semibold leading-relaxed text-slate-600 px-1">
+                    Добро пожаловать в <span className="text-amber-600 font-bold">Мяу-Доку</span> — уютный мир, где яркие пиксельные картинки оживают от твоих прикосновений! 🥰
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-3 italic">
+                    Давай научимся играть и ухаживать за котиками!
+                  </p>
+                </div>
+              )}
+
+              {currentOnboardingSlide === 1 && (
+                <div className="flex flex-col items-center animate-fade-in w-full text-center">
+                  <div className="flex gap-4 mb-4 items-center justify-center">
+                    <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center border border-amber-200 shadow-sm">
+                      <span className="text-2xl">🎨</span>
+                    </div>
+                    <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center border border-indigo-200 shadow-sm">
+                      <span className="text-2xl">🪄</span>
+                    </div>
+                    <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center border border-rose-200 shadow-sm animate-bounce">
+                      <span className="text-2xl">💣</span>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-base font-pixel text-amber-700 uppercase font-black tracking-wide mb-2.5">
+                    Как играть? 🖌️
+                  </h3>
+
+                  <div className="text-left w-full space-y-2 px-1 text-slate-600 font-semibold text-[10.5px]">
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-amber-500 text-xs">①</span>
+                      <span>Выбери цифру цвета на палитре внизу холста.</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-amber-500 text-xs">②</span>
+                      <span>Тапай по серым клеткам с такой же цифрой на рисунке.</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-amber-500 text-xs">③</span>
+                      <span>Используй Палочку <span className="text-indigo-600 font-bold">🪄</span> и Бомбочку <span className="text-rose-500 font-bold">💣</span> для быстрого раскрашивания!</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentOnboardingSlide === 2 && (
+                <div className="flex flex-col items-center text-center animate-fade-in">
+                  <div className="w-20 h-20 bg-amber-100 rounded-2xl flex items-center justify-center mb-4 border-2 border-amber-200 shadow-md">
+                    <span className="text-4xl animate-bounce">🏠</span>
+                  </div>
+                  
+                  <h3 className="text-base font-pixel text-amber-700 uppercase font-black tracking-wide mb-2.5">
+                    Уютный Кото-Дом! 🛋️
+                  </h3>
+
+                  <p className="text-xs font-semibold leading-relaxed text-slate-600 px-1 mb-2">
+                    Пройди первые <span className="text-amber-600 font-extrabold">3 уровня</span>, чтобы разблокировать доступ в <span className="text-rose-500 font-bold">Домик котиков</span>, Автомат Удачи (Гачу 📦) и Магазин мебели!
+                  </p>
+                  
+                  <p className="text-[10px] leading-normal text-amber-600 font-bold flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200/50">
+                    <span>🐈</span>
+                    <span>Поселяй котиков на коврики, гладь их и собирай пряжу!</span>
+                  </p>
+                </div>
+              )}
+
+              {/* NAVIGATION BUTTONS */}
+              <div className="w-full flex gap-3 mt-6">
+                {currentOnboardingSlide > 0 && (
+                  <button
+                    onClick={() => {
+                      setCurrentOnboardingSlide(currentOnboardingSlide - 1);
+                      SOUNDS.playPop(0.9);
+                    }}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-pixel text-[9px] p-2.5 rounded-2xl border border-slate-300 active:scale-95 transition-all cursor-pointer font-bold uppercase tracking-wide"
+                  >
+                    Назад ⬅
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => {
+                    SOUNDS.playPop(1.1);
+                    if (currentOnboardingSlide < 2) {
+                      setCurrentOnboardingSlide(currentOnboardingSlide + 1);
+                    } else {
+                      // Finish Onboarding!
+                      localStorage.setItem("meowcolor_onboarding_done", "true");
+                      setCurrentOnboardingSlide(null);
+                      
+                      // Auto-start first level!
+                      if (completedPuzzles.length === 0) {
+                        const firstLvl = LEVEL_SEQUENCE[0];
+                        const firstPuzzle = allAvailablePuzzles.find((p) => p.id === firstLvl.puzzleId);
+                        if (firstPuzzle) {
+                          handleSelectPuzzle(firstPuzzle);
+                          setTutorialStep(1);
+                        }
+                      }
+                    }
+                  }}
+                  className="flex-1 bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-pixel text-[9px] p-2.5 rounded-2xl border border-emerald-300 active:scale-95 transition-all cursor-pointer font-extrabold uppercase tracking-wide shadow-md"
+                >
+                  {currentOnboardingSlide === 2 ? "Начать! 🎨🐾" : "Далее ➡️"}
+                </button>
+              </div>
+
+            </div>
+          </div>
         )}
 
       </div>
