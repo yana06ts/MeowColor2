@@ -43,6 +43,9 @@ interface CatRoomProps {
   updateCatDuplicates: (newDuplicates: Record<string, number>) => void;
   currentLevelIndex: number;
   onPlayLevel: () => void;
+  hideLevelActions?: boolean;
+  onPlaceCatCallback?: () => void;
+  onDragCatCallback?: () => void;
 }
 
 interface PlacedCat {
@@ -92,6 +95,9 @@ export function CatRoom({
   updateCatDuplicates,
   currentLevelIndex,
   onPlayLevel,
+  hideLevelActions = false,
+  onPlaceCatCallback,
+  onDragCatCallback,
 }: CatRoomProps) {
   const roomRef = useRef<HTMLDivElement>(null);
   
@@ -589,6 +595,9 @@ export function CatRoom({
     const updated = [...placedCats, newCat];
     savePlacedCats(updated);
     SOUNDS.playMeow();
+    if (onPlaceCatCallback) {
+      onPlaceCatCallback();
+    }
   };
 
   // Remove cat
@@ -712,6 +721,9 @@ export function CatRoom({
             localStorage.setItem("meowcolor_placed_cats", JSON.stringify(currentCats));
             return currentCats;
           });
+          if (onDragCatCallback) {
+            onDragCatCallback();
+          }
         }
       }
     };
@@ -937,7 +949,7 @@ export function CatRoom({
       </div>
 
       {/* Super Cat Progress Bar */}
-      {(() => {
+      {!hideLevelActions && (() => {
         const currentLvl = LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
         if (!currentLvl) return null;
 
@@ -1432,7 +1444,7 @@ export function CatRoom({
       </div>
 
       {/* Play Level Action Row (separated, positioned higher above the available cats drawer) */}
-      {(() => {
+      {!hideLevelActions && (() => {
         const currentLvl = LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
         const puzzle = puzzleTemplates.find(p => p.id === currentLvl.puzzleId) || GACHA_EXCLUSIVE_PUZZLES.find(p => p.id === currentLvl.puzzleId);
         const currentPuzzleName = puzzle?.name.replace(/[🐾🐈‍⬛📦]/g, "").trim() || "Новый рисунок";

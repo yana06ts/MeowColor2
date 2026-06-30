@@ -61,10 +61,24 @@ export default function App() {
   const [hasAutoStarted, setHasAutoStarted] = useState<boolean>(false);
 
   // 2. Navigation states
-  const [activeTab, setActiveTab] = useState<"room">("room");
+  const [activeTab, setActiveTab] = useState<"achievements" | "shop" | "levels" | "gacha" | "room">("levels");
   const [selectedPuzzle, setSelectedPuzzle] = useState<PuzzleTemplate | null>(null);
   const [currentProgress, setCurrentProgress] = useState<CellProgress[]>([]);
   const [selectedColorNumber, setSelectedColorNumber] = useState<number>(1);
+
+  // 2b. Visual feedback & Tutorial states
+  const [colorCompletedSplash, setColorCompletedSplash] = useState<number | null>(null);
+  const [isLevelCelebrating, setIsLevelCelebrating] = useState<boolean>(false);
+  const [celebrationText, setCelebrationText] = useState<string>("");
+  const [tutorialStep, setTutorialStep] = useState<number | null>(null);
+  const [houseTutorialStep, setHouseTutorialStep] = useState<number | null>(null);
+  const [rollingGacha, setRollingGacha] = useState<boolean>(false);
+  const [rolledReward, setRolledReward] = useState<{
+    puzzle: PuzzleTemplate;
+    isCat: boolean;
+    isNew: boolean;
+    duplicateReward: boolean;
+  } | null>(null);
 
   // 3. Audio & UI options
   const [soundOn, setSoundOn] = useState<boolean>(true);
@@ -185,20 +199,36 @@ export default function App() {
     }
   }, []);
 
-  // Auto-load current level on startup
+  // Auto-load current level on startup (bypass for main levels screen)
   useEffect(() => {
-    if (!hasAutoStarted && LEVEL_SEQUENCE.length > 0 && !selectedPuzzle) {
-      const currentLvl = LEVEL_SEQUENCE[currentLevelIndex];
-      if (currentLvl) {
-        // Find puzzle template
-        const puzzle = PUZZLE_TEMPLATES.find(p => p.id === currentLvl.puzzleId) || GACHA_EXCLUSIVE_PUZZLES.find(p => p.id === currentLvl.puzzleId);
-        if (puzzle && !completedPuzzles.includes(puzzle.id)) {
-          handleSelectPuzzle(puzzle);
-        }
-      }
+    if (!hasAutoStarted) {
       setHasAutoStarted(true);
     }
-  }, [completedPuzzles, currentLevelIndex, hasAutoStarted, selectedPuzzle]);
+  }, [hasAutoStarted]);
+
+  // Trigger cozy room tutorial
+  useEffect(() => {
+    if (gameStarted && activeTab === "room") {
+      const isHouseTutorialDone = localStorage.getItem("meowcolor_tutorial_house") === "completed";
+      const hasUnplacedCats = completedPuzzles.length > 0 || gachaUnlockedCats.length > 0;
+      
+      const savedPlaced = localStorage.getItem("meowcolor_placed_cats");
+      let placedCount = 0;
+      try {
+        if (savedPlaced) {
+          placedCount = JSON.parse(savedPlaced).length;
+        }
+      } catch (e) {}
+
+      if (!isHouseTutorialDone && hasUnplacedCats && placedCount === 0) {
+        setHouseTutorialStep(1);
+      } else {
+        setHouseTutorialStep(null);
+      }
+    } else {
+      setHouseTutorialStep(null);
+    }
+  }, [gameStarted, activeTab, completedPuzzles, gachaUnlockedCats]);
 
   // Save updates helper
   const updateYarn = (newVal: number) => {
@@ -298,8 +328,40 @@ export default function App() {
     });
     setCurrentProgress(updated);
 
+    // Tutorial step advancement
+    if (tutorialStep === 2) {
+      setTutorialStep(3);
+    }
+
     // Save temporary progress
     localStorage.setItem(`meowcolor_progress_${selectedPuzzle!.id}`, JSON.stringify(updated));
+
+    // Check if current selected color is fully filled
+    const targetNum = selectedColorNumber;
+    const totalWithColor = updated.filter((c) => c.number === targetNum).length;
+    const filledWithColor = updated.filter((c) => c.number === targetNum && c.filled).length;
+    const wasAlreadyDone = currentProgress.filter((c) => c.number === targetNum && c.filled).length === totalWithColor;
+
+    if (filledWithColor === totalWithColor && !wasAlreadyDone && totalWithColor > 0) {
+      // Current color completed!
+      SOUNDS.playSuccessColor();
+      setColorCompletedSplash(targetNum);
+      setTimeout(() => {
+        setColorCompletedSplash(null);
+      }, 1600);
+
+      // Auto select next uncompleted color
+      const nextColor = selectedPuzzle!.colors.find((col) => {
+        const total = updated.filter((c) => c.number === col.number).length;
+        const filled = updated.filter((c) => c.number === col.number && c.filled).length;
+        return filled < total;
+      });
+      if (nextColor) {
+        setTimeout(() => {
+          setSelectedColorNumber(nextColor.number);
+        }, 700);
+      }
+    }
 
     // Check if entire puzzle solved (ignoring spacing zeros)
     const isPuzzleFinished = updated.every(
@@ -349,16 +411,31 @@ export default function App() {
       // Clear partial progress state storage
       localStorage.removeItem(`meowcolor_progress_${puzzleId}`);
 
-      // Synthesize level completeness sound
+      // Defer rewards and trigger beautiful visual celebration banner!
+      setIsLevelCelebrating(true);
+      const PRAISES = [
+        "Мур-р! Твои лапки творят настоящие шедевры! 🐾",
+        "Потрясающая палитра! Котики в абсолютном восторге! 🥰",
+        "Ты — настоящий чудо-художник! Мяу! ✨",
+        "Мур-р-рсимальная красота! Шедевр завершен! 🌸",
+        "Твои лапки заслужили мисочку сливок! Кот великолепен! 🥛🐱",
+      ];
+      const randomPraise = PRAISES[Math.floor(Math.random() * PRAISES.length)];
+      setCelebrationText(randomPraise);
+      
+      SOUNDS.playCompleteLevel();
       setTimeout(() => {
-        SOUNDS.playCompleteLevel();
-      }, 300);
+        SOUNDS.playMeow();
+      }, 500);
 
-      // Open reward visual dialog
-      setLevelCompleteModal({
-        active: true,
-        yarnEarned: finalReward,
-      });
+      // Open reward visual dialog after 2.5 seconds
+      setTimeout(() => {
+        setIsLevelCelebrating(false);
+        setLevelCompleteModal({
+          active: true,
+          yarnEarned: finalReward,
+        });
+      }, 2500);
     }
   };
 
@@ -386,6 +463,37 @@ export default function App() {
     if (powerups[type] > 0) {
       updatePowerupsVal({ ...powerups, [type]: powerups[type] - 1 });
     }
+  };
+
+  const renderMiniPreview = (puzzle: PuzzleTemplate) => {
+    return (
+      <div className="w-14 h-14 bg-slate-100/90 rounded-xl border border-slate-200/50 flex items-center justify-center p-1 overflow-hidden shadow-inner shrink-0 relative">
+        <div
+          className="grid gap-[0.5px]"
+          style={{
+            gridTemplateColumns: `repeat(${puzzle.width}, minmax(0, 1fr))`,
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          {puzzle.rows.flatMap((rowStr, r) =>
+            rowStr.split("").map((c, idx) => {
+              const num = c === "." ? 0 : parseInt(c, 10);
+              const color = puzzle.colors.find((col) => col.number === num);
+              return (
+                <div
+                  key={`${r}-${idx}`}
+                  className="rounded-[0.2px]"
+                  style={{
+                    backgroundColor: num === 0 ? "transparent" : color?.hex || "#999",
+                  }}
+                />
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
   };
 
   // Clear completion progress to replay the game
@@ -559,7 +667,7 @@ export default function App() {
             </div>
 
             {/* Yarn Stash and Stats */}
-            <div className="flex items-center gap-1.5 select-none">
+            <div className="flex items-center gap-2 select-none">
               {/* Settings Toggle */}
               <button
                 id="header-settings-btn"
@@ -573,13 +681,31 @@ export default function App() {
                 <Settings className="w-3.5 h-3.5" />
               </button>
 
-              {/* Regular Yarn score bubble (Static) */}
+              {/* Regular Yarn score bubble */}
               <div
                 className="flex items-center gap-0.5 bg-amber-400 border border-amber-500 px-2 py-0.5 rounded-full text-[10px] font-pixel shadow-xs scale-90 text-slate-950 font-bold"
                 title="Баланс пряжи 🧶"
               >
                 <span>🧶</span>
                 <span>{yarnCount}</span>
+              </div>
+
+              {/* Gold Yarn crystals bubble */}
+              <div
+                className="flex items-center gap-0.5 bg-sky-400 border border-sky-500 px-2 py-0.5 rounded-full text-[10px] font-pixel shadow-xs scale-90 text-slate-950 font-bold"
+                title="Кристаллы 💎"
+              >
+                <span>💎</span>
+                <span>{goldYarnCount}</span>
+              </div>
+
+              {/* Tickets bubble */}
+              <div
+                className="flex items-center gap-0.5 bg-rose-300 border border-rose-400 px-2 py-0.5 rounded-full text-[10px] font-pixel shadow-xs scale-90 text-slate-950 font-bold"
+                title="Купоны 🎟️"
+              >
+                <span>🎟️</span>
+                <span>{gachaTickets}</span>
               </div>
             </div>
           </div>
@@ -599,7 +725,7 @@ export default function App() {
                   className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:bg-rose-100 px-2 py-1 rounded-lg active:scale-95 cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  В домик 🏠
+                  В меню 🏠
                 </button>
                 <div className="text-right">
                   <h3 className="text-xs font-pixel text-slate-800 scale-90 truncate max-w-[140px]">
@@ -612,20 +738,101 @@ export default function App() {
               </div>
 
               {/* Active Drawing canvas engine wrapper */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden relative">
                 <PixelGrid
                   puzzle={selectedPuzzle}
                   progress={currentProgress}
                   selectedColorNumber={selectedColorNumber}
-                  onPixelColored={handlePixelColored}
+                  onPixelColored={(idx) => {
+                    handlePixelColored(idx);
+                    // Advancing tutorial step 2
+                    if (tutorialStep === 2) {
+                      setTutorialStep(3);
+                    }
+                  }}
                   onUsePowerup={handleUsePowerupDeduction}
                   powerupCounts={powerups}
                 />
+
+                {/* Color completed banner splash */}
+                {colorCompletedSplash !== null && (
+                  <div className="absolute inset-x-0 top-6 z-50 flex justify-center animate-bounce pointer-events-none px-4 text-center">
+                    <div className="bg-emerald-500 text-white font-pixel text-[9px] px-3.5 py-1.5 rounded-full shadow-lg border border-emerald-300 flex items-center gap-1 uppercase font-bold">
+                      <span>✨</span>
+                      <span>ЦВЕТ {colorCompletedSplash} ПОЛНОСТЬЮ ЗАВЕРШЕН! 🐾</span>
+                      <span>✨</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Celebration Overlay */}
+                {isLevelCelebrating && (
+                  <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center animate-fade-in pointer-events-auto">
+                    <div className="bg-gradient-to-b from-amber-400 to-amber-500 p-6 rounded-[32px] border-4 border-white shadow-2xl max-w-xs animate-scale-up relative">
+                      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-4xl animate-bounce shadow-md">
+                        😻🎨
+                      </div>
+                      <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-500 to-teal-400 rounded-[32px] blur opacity-30 -z-10 animate-pulse" />
+                      <h2 className="text-xs font-pixel text-slate-950 uppercase tracking-wide font-black leading-tight">
+                        ШЕДЕВР ЗАВЕРШЕН! 🎉🐾
+                      </h2>
+                      <p className="text-[9.5px] text-slate-900 font-pixel leading-relaxed mt-3 px-1">
+                        {celebrationText}
+                      </p>
+                      <div className="flex justify-center gap-1.5 mt-4">
+                        <span className="text-xl animate-bounce">✨</span>
+                        <span className="text-xl animate-bounce delay-100">💖</span>
+                        <span className="text-xl animate-bounce delay-200">🧶</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Coloring tutorial bubble */}
+                {tutorialStep !== null && (
+                  <div className="absolute inset-x-0 bottom-4 z-50 flex flex-col items-center px-4 pointer-events-auto">
+                    <div className="bg-slate-950/95 text-white p-3.5 rounded-2xl border border-rose-300/30 shadow-2xl max-w-xs text-center animate-fade-in flex flex-col gap-1.5 select-none relative">
+                      <span className="text-[9px] font-pixel text-rose-300 uppercase font-bold tracking-wider">
+                        🐱 ШКОЛА РАСКРАСКИ 🐾
+                      </span>
+                      <p className="text-[9px] leading-relaxed font-semibold text-slate-200">
+                        {tutorialStep === 1 && "Мяу! Нажми на круглую кнопку с цифрой '1' в палитре внизу экрана, чтобы выбрать первый цвет! 👇"}
+                        {tutorialStep === 2 && "Мур-р! Отлично! Теперь найди на рисунке серые клетки с цифрой '1' и тапай по ним, чтобы закрасить! 🖌️🐾"}
+                        {tutorialStep === 3 && "Замечательно! Ты красишь как настоящий мастер! ✨ Нажимай на другие цвета или пользуйся волшебной палочкой 🪄 и бомбочкой 💣 для супер-раскрашивания!"}
+                      </p>
+                      <div className="flex justify-center mt-1">
+                        {tutorialStep === 3 ? (
+                          <button
+                            onClick={() => {
+                              localStorage.setItem("meowcolor_tutorial_coloring", "completed");
+                              setTutorialStep(null);
+                              SOUNDS.playCompleteLevel();
+                            }}
+                            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-1 rounded-xl text-[8.5px] font-pixel uppercase tracking-wide cursor-pointer shadow-xs active:scale-95 border-0"
+                          >
+                            Понятно, мур! 🐾
+                          </button>
+                        ) : (
+                          <span
+                            onClick={() => {
+                              if (tutorialStep === 1) {
+                                setTutorialStep(2);
+                              }
+                            }}
+                            className="text-xs animate-bounce cursor-pointer"
+                          >
+                            {tutorialStep === 1 ? "👇" : "☝️"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Dynamic Footer color selection palette picker */}
               <div className="bg-white border-t border-rose-100 p-3 flex flex-col gap-2 shrink-0 select-none">
-                <span className="text-[10px] font-pixel text-slate-400 text-center">
+                <span className="text-[9px] font-pixel text-slate-400 text-center">
                   ВЫБЕРИ ЦВЕТ И КЛИКАЙ НА ПОДХОДЯЩИЕ ЦИФРЫ:
                 </span>
                 
@@ -646,6 +853,9 @@ export default function App() {
                           if (!isDone) {
                             setSelectedColorNumber(color.number);
                             SOUNDS.playPop(1.0 + color.number * 0.1);
+                            if (tutorialStep === 1 && color.number === 1) {
+                              setTutorialStep(2);
+                            }
                           }
                         }}
                         className={`relative w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all ${
@@ -680,49 +890,816 @@ export default function App() {
                 </div>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              
+              {/* TAB 1: LEVELS SCREEN */}
+              {activeTab === "levels" && (
+                <div className="flex-1 flex flex-col overflow-hidden bg-[#FFFBF0] animate-fade-in relative">
+                  
+                  {/* Chapter progress bar */}
+                  {(() => {
+                    const currentLvl = LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
+                    if (!currentLvl) return null;
 
-          {/* Interactive cozy cat room (Primary screen) */}
-          <div className="flex-1 overflow-hidden relative flex flex-col h-full">
-            <CatRoom
-              completedPuzzles={completedPuzzles}
-              puzzleTemplates={allAvailablePuzzles}
-              yarnCount={yarnCount}
-              updateYarn={updateYarn}
-              goldYarnCount={goldYarnCount}
-              updateGoldYarn={updateGoldYarn}
-              gachaTickets={gachaTickets}
-              updateGachaTickets={updateGachaTickets}
-              catLevels={catLevels}
-              updateCatLevels={updateCatLevels}
-              equippedSkins={equippedSkins}
-              updateEquippedSkins={updateEquippedSkins}
-              unlockedSkins={unlockedSkins}
-              updateUnlockedSkins={updateUnlockedSkins}
-              gachaUnlockedCats={gachaUnlockedCats}
-              updateGachaUnlockedCats={updateGachaUnlockedCats}
-              catDuplicates={catDuplicates}
-              updateCatDuplicates={updateCatDuplicates}
-              currentLevelIndex={currentLevelIndex}
-              onPlayLevel={() => {
-                const currentLvl = LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
-                const puzzle = PUZZLE_TEMPLATES.find(p => p.id === currentLvl.puzzleId) || GACHA_EXCLUSIVE_PUZZLES.find(p => p.id === currentLvl.puzzleId);
-                if (puzzle) {
-                  if (currentLvl.isSuper) {
-                    setShowSuperCatIntro({
-                      active: true,
-                      puzzle: puzzle,
-                      nextIndex: currentLevelIndex
-                    });
-                    SOUNDS.playCompleteLevel();
-                  } else {
-                    handleSelectPuzzle(puzzle);
-                  }
-                }
-              }}
-            />
-          </div>
+                    const cycleLevels = LEVEL_SEQUENCE.filter((item) => item.cycleNumber === currentLvl.cycleNumber);
+                    const regularLevels = cycleLevels.filter((item) => !item.isSuper);
+                    const superCatLvl = cycleLevels.find((item) => item.isSuper);
+                    const superCatTemplate = allAvailablePuzzles.find(p => p.id === superCatLvl?.puzzleId);
+                    const catName = superCatTemplate ? superCatTemplate.name.replace(/[🐾🐈‍⬛📦👑💙🧡]/g, "").trim() : "Супер-Кота";
+
+                    const completedRegular = regularLevels.filter((item) => completedPuzzles.includes(item.puzzleId)).length;
+                    const totalRegular = regularLevels.length;
+                    const percent = Math.min(100, Math.floor((completedRegular / totalRegular) * 100));
+
+                    return (
+                      <div className="mx-4 mt-4 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-50 border-2 border-amber-200 rounded-3xl p-3.5 flex flex-col gap-2 shrink-0 select-none shadow-sm">
+                        <div className="flex justify-between items-center text-[9.5px] font-pixel text-amber-900 font-black uppercase">
+                          <span className="flex items-center gap-1">👑 Прогресс Главы: <span className="text-rose-600">{catName}</span></span>
+                          <span className="bg-amber-200 text-amber-950 px-2 py-0.5 rounded-full border border-amber-300 font-bold">{completedRegular}/{totalRegular}</span>
+                        </div>
+                        <div className="w-full bg-amber-200/40 h-3.5 rounded-full overflow-hidden border border-amber-300/40 shadow-inner relative flex items-center p-0.5">
+                          <div
+                            className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full transition-all duration-700 shadow-md relative"
+                            style={{ width: `${percent}%` }}
+                          >
+                            <div className="absolute right-1 top-0.5 w-1 h-1 bg-white/60 rounded-full" />
+                          </div>
+                          {/* Sparkling floating star inside bar */}
+                          <div 
+                            className="absolute text-xs pointer-events-none transform -translate-y-1/2 top-1/2 transition-all duration-700"
+                            style={{ left: `calc(${percent}% - 6px)` }}
+                          >
+                            ⭐
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Cozy Interactive Play Stage with Full Scenery Background */}
+                  <div className="flex-1 flex flex-col justify-between p-6 relative select-none bg-gradient-to-b from-sky-200 via-orange-100 to-amber-50 overflow-hidden border-t border-amber-100">
+                    {/* Floating ambient decorations in the sky */}
+                    <div className="absolute top-6 left-8 text-3xl opacity-60 animate-bounce duration-1000">☁️</div>
+                    <div className="absolute top-16 left-24 text-xl opacity-40">☁️</div>
+                    <div className="absolute top-8 right-10 text-4xl opacity-75 animate-pulse">☀️</div>
+                    <div className="absolute top-14 right-24 text-sm opacity-50 animate-bounce duration-2000">🐦</div>
+                    <div className="absolute top-28 left-6 text-xs opacity-30">✨</div>
+                    <div className="absolute top-20 right-8 text-xs opacity-30">✨</div>
+                    
+                    {/* Grassy Meadow Field at the bottom */}
+                    <div className="absolute bottom-0 inset-x-0 h-[45%] bg-gradient-to-t from-emerald-500 via-emerald-400 to-teal-200/20 rounded-t-[4rem] border-t-4 border-emerald-400/40 z-0">
+                      {/* Sweet meadow flowers */}
+                      <div className="absolute top-4 left-10 text-sm opacity-60">🌸</div>
+                      <div className="absolute top-6 left-16 text-xs opacity-50">🌱</div>
+                      <div className="absolute top-8 right-12 text-sm opacity-60">🌻</div>
+                      <div className="absolute top-5 right-20 text-xs opacity-50">🌼</div>
+                      <div className="absolute top-12 left-1/4 text-xs opacity-50">🌸</div>
+                      <div className="absolute top-14 right-1/3 text-xs opacity-50">🍀</div>
+                    </div>
+
+                    {(() => {
+                      const currentLvl = LEVEL_SEQUENCE[currentLevelIndex];
+                      if (!currentLvl) return null;
+
+                      const currentPuzzle = allAvailablePuzzles.find(p => p.id === currentLvl.puzzleId);
+                      if (!currentPuzzle) return null;
+
+                      const diffLabels: Record<string, string> = {
+                        Easy: "ЛЕГКО",
+                        Medium: "СРЕДНЕ",
+                        Expert: "СЛОЖНО"
+                      };
+                      const diffLabel = diffLabels[currentPuzzle.difficulty] || "НОРМА";
+
+                      return (
+                        <div className="flex-1 flex flex-col justify-between items-center z-10">
+                          
+                          {/* Centered resting cute kitten illustration on the meadow */}
+                          <div className="flex-1 flex flex-col items-center justify-center relative mt-6">
+                            {/* Giant cute cat */}
+                            <div className="relative">
+                              <div className="text-8xl filter drop-shadow-md animate-bounce duration-3000 select-none">
+                                {currentLvl.isSuper ? "🦁" : "🐈"}
+                              </div>
+                              {/* Big magical yarn next to it */}
+                              <div className="absolute -bottom-2 -right-4 text-4xl filter drop-shadow-sm animate-pulse select-none">
+                                🧶
+                              </div>
+                              {/* Cute sparkle bubble */}
+                              <div className="absolute -top-4 -left-4 text-2xl select-none animate-pulse">
+                                ✨
+                              </div>
+                              {/* Super cat crown if applicable */}
+                              {currentLvl.isSuper && (
+                                <div className="absolute -top-6 inset-x-0 text-center text-3xl select-none animate-bounce">
+                                  👑
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Little speaking bubble */}
+                            <div className="mt-4 bg-white/95 border border-amber-200 rounded-2xl px-4 py-1.5 shadow-sm text-center relative max-w-[180px]">
+                              <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 border-t border-l border-amber-200" />
+                              <span className="font-pixel text-[9px] text-amber-950 font-black uppercase tracking-wide">
+                                {currentLvl.isSuper ? "Редкий Гость! ✨" : "Мяу! Разгадай меня! 🐾"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Level Details Play Button at the bottom */}
+                          <div className="w-full max-w-xs px-2 mb-2">
+                            <button
+                              onClick={() => {
+                                const isTutorialDone = localStorage.getItem("meowcolor_tutorial_coloring") === "completed";
+                                if (!isTutorialDone && !completedPuzzles.includes(currentPuzzle.id)) {
+                                  setTutorialStep(1);
+                                } else {
+                                  setTutorialStep(null);
+                                }
+
+                                if (currentLvl.isSuper) {
+                                  setShowSuperCatIntro({
+                                    active: true,
+                                    puzzle: currentPuzzle,
+                                    nextIndex: currentLevelIndex
+                                  });
+                                  SOUNDS.playCompleteLevel();
+                                } else {
+                                  handleSelectPuzzle(currentPuzzle);
+                                }
+                              }}
+                              className="w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg border-b-4 border-emerald-600 transition-all duration-200 active:scale-95 cursor-pointer font-pixel text-[10px] uppercase tracking-wider"
+                            >
+                              <Play className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+                              Уровень {currentLevelIndex + 1} • {diffLabel}
+                            </button>
+                          </div>
+
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: COZY CAT ROOM (Shelter) */}
+              {activeTab === "room" && (
+                <div className="flex-1 overflow-hidden relative flex flex-col h-full animate-fade-in">
+                  <CatRoom
+                    completedPuzzles={completedPuzzles}
+                    puzzleTemplates={allAvailablePuzzles}
+                    yarnCount={yarnCount}
+                    updateYarn={updateYarn}
+                    goldYarnCount={goldYarnCount}
+                    updateGoldYarn={updateGoldYarn}
+                    gachaTickets={gachaTickets}
+                    updateGachaTickets={updateGachaTickets}
+                    catLevels={catLevels}
+                    updateCatLevels={updateCatLevels}
+                    equippedSkins={equippedSkins}
+                    updateEquippedSkins={updateEquippedSkins}
+                    unlockedSkins={unlockedSkins}
+                    updateUnlockedSkins={updateUnlockedSkins}
+                    gachaUnlockedCats={gachaUnlockedCats}
+                    updateGachaUnlockedCats={updateGachaUnlockedCats}
+                    catDuplicates={catDuplicates}
+                    updateCatDuplicates={updateCatDuplicates}
+                    currentLevelIndex={currentLevelIndex}
+                    hideLevelActions={true}
+                    onPlaceCatCallback={() => {
+                      if (houseTutorialStep === 1) {
+                        setHouseTutorialStep(2);
+                      }
+                    }}
+                    onDragCatCallback={() => {
+                      if (houseTutorialStep === 2) {
+                        setHouseTutorialStep(3);
+                      }
+                    }}
+                    onPlayLevel={() => {}}
+                  />
+
+                  {/* House tutorial bubble */}
+                  {houseTutorialStep !== null && (
+                    <div className="absolute inset-x-0 bottom-4 z-50 flex flex-col items-center px-4 pointer-events-auto">
+                      <div className="bg-slate-950/95 text-white p-3.5 rounded-2xl border border-amber-300/30 shadow-2xl max-w-xs text-center animate-fade-in flex flex-col gap-1.5 select-none relative">
+                        <span className="text-[9px] font-pixel text-amber-300 uppercase font-bold tracking-wider">
+                          🏠 КОТО-ДОМ ТУТОРИАЛ 🐾
+                        </span>
+                        <p className="text-[9px] leading-relaxed font-semibold text-slate-200">
+                          {houseTutorialStep === 1 && "Смотри! Твоя комната пуста, но у тебя есть свободный котик! 🐱 Нажми на котика со значком «Призвать» на нижней полке, чтобы впустить его в домик! 👇"}
+                          {houseTutorialStep === 2 && "Отлично! Твой котик появился в комнате! Теперь зажми его и перетащи на мягкий круглый коврик в центре! 🧶🐾"}
+                          {houseTutorialStep === 3 && "Ура! Теперь котик счастлив на теплом коврике! Тапай по котику, чтобы погладить его, получить мотки пряжи и услышать милое «Мяу»! 🥰💖"}
+                        </p>
+                        <div className="flex justify-center mt-1">
+                          {houseTutorialStep === 3 ? (
+                            <button
+                              onClick={() => {
+                                localStorage.setItem("meowcolor_tutorial_house", "completed");
+                                setHouseTutorialStep(null);
+                                SOUNDS.playCompleteLevel();
+                              }}
+                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-1 rounded-xl text-[8.5px] font-pixel uppercase tracking-wide cursor-pointer shadow-xs active:scale-95 border-0"
+                            >
+                              Спасибо, мур! 🐾
+                            </button>
+                          ) : (
+                            <span className="text-xs animate-bounce pointer-events-none select-none">
+                              👇
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 3: GACHA MACHINE */}
+              {activeTab === "gacha" && (
+                <div className="flex-1 flex flex-col items-center justify-center bg-[#FFFBF0] animate-fade-in p-4 space-y-4 overflow-y-auto">
+                  
+                  {/* Visual Gacha Present Box */}
+                  <div className="bg-white border-2 border-rose-100 rounded-[32px] p-6 shadow-md flex flex-col items-center w-full max-w-xs shrink-0 select-none">
+                    <div className="text-center">
+                      <h3 className="text-[12px] font-pixel font-black text-rose-800 uppercase leading-none tracking-wide">
+                        Коробка Удачи ✨🎁✨
+                      </h3>
+                      <p className="text-[8.5px] text-slate-400 leading-none mt-2 font-semibold">
+                        Купоны: {gachaTickets} 🎟️ • Пряжа: {yarnCount} 🧶
+                      </p>
+                    </div>
+
+                    {/* Highly aesthetic animated Gift Box Container */}
+                    <div 
+                      id="gacha-gift-box-clicker"
+                      onClick={() => {
+                        if (rollingGacha) return;
+                        
+                        const costTickets = gachaTickets >= 1;
+                        const costYarn = yarnCount >= 100;
+                        
+                        if (!costTickets && !costYarn) {
+                          SOUNDS.playError();
+                          alert("Не хватает Купонов (нужно 1 🎟️) или Пряжи (нужно 100 🧶)!");
+                          return;
+                        }
+                        
+                        if (costTickets) {
+                          updateGachaTickets(gachaTickets - 1);
+                        } else {
+                          updateYarn(yarnCount - 100);
+                        }
+                        
+                        SOUNDS.playPop(1.1);
+                        setRollingGacha(true);
+                        
+                        setTimeout(() => {
+                          const rolled = GACHA_EXCLUSIVE_PUZZLES[Math.floor(Math.random() * GACHA_EXCLUSIVE_PUZZLES.length)];
+                          let isCat = rolled.category === "cats";
+                          let rewardObj: any = {
+                            puzzle: rolled,
+                            isCat,
+                            isNew: false,
+                            duplicateReward: false,
+                          };
+                          
+                          if (isCat) {
+                            const isAlreadyUnlocked = gachaUnlockedCats.includes(rolled.id);
+                            if (!isAlreadyUnlocked) {
+                              const updated = [...gachaUnlockedCats, rolled.id];
+                              setGachaUnlockedCats(updated);
+                              localStorage.setItem("meowcolor_gacha_unlocked", JSON.stringify(updated));
+                              rewardObj.isNew = true;
+                            } else {
+                              const currentDup = catDuplicates[rolled.id] || 0;
+                              const updated = { ...catDuplicates, [rolled.id]: currentDup + 1 };
+                              updateCatDuplicates(updated);
+                              rewardObj.duplicateReward = true;
+                            }
+                          } else {
+                            const isAlreadyUnlocked = unlockedGachaPuzzleIds.includes(rolled.id);
+                            if (!isAlreadyUnlocked) {
+                              const updated = [...unlockedGachaPuzzleIds, rolled.id];
+                              setUnlockedGachaPuzzleIds(updated);
+                              localStorage.setItem("meowcolor_unlocked_gacha_puzzles", JSON.stringify(updated));
+                              rewardObj.isNew = true;
+                            } else {
+                              updateYarn(yarnCount + 150);
+                              rewardObj.duplicateReward = true;
+                            }
+                          }
+                          
+                          setRolledReward(rewardObj);
+                          setRollingGacha(false);
+                          SOUNDS.playCompleteLevel();
+                        }, 1500);
+                      }}
+                      className={`relative w-48 h-48 flex flex-col items-center justify-end pb-3 mt-4 mb-2 cursor-pointer select-none group active:scale-95 transition-transform ${
+                        rollingGacha ? "animate-bounce duration-150" : "hover:scale-105"
+                      }`}
+                    >
+                      {/* Sparkles / Magic elements around */}
+                      <span className="absolute top-2 left-2 text-xl animate-pulse">✨</span>
+                      <span className="absolute top-0 right-4 text-2xl animate-bounce">🌟</span>
+                      <span className="absolute bottom-10 -left-4 text-lg animate-pulse">✨</span>
+                      <span className="absolute bottom-6 -right-3 text-xl animate-bounce">🎁</span>
+
+                      {/* Giant Bow Ribbons 🎀 */}
+                      <div className={`absolute top-2 z-20 text-5xl transition-transform duration-300 ${rollingGacha ? "scale-125 rotate-6" : "group-hover:scale-110"}`}>
+                        💝
+                      </div>
+
+                      {/* Gift Box Lid */}
+                      <div className="w-40 h-8 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 rounded-lg shadow-md border-b border-rose-600/40 flex items-center justify-center relative z-10">
+                        {/* Gold Horizontal Ribbon */}
+                        <div className="absolute inset-x-0 h-1.5 bg-amber-300" />
+                        {/* Gold Vertical Ribbon */}
+                        <div className="absolute inset-y-0 w-6 bg-amber-300" />
+                      </div>
+
+                      {/* Gift Box Body */}
+                      <div className="w-36 h-28 bg-gradient-to-r from-rose-400 via-pink-400 to-rose-400 rounded-b-2xl shadow-lg relative flex items-center justify-center border-t border-rose-300">
+                        {/* Gold Vertical Ribbon */}
+                        <div className="absolute inset-y-0 w-6 bg-amber-300" />
+                        {/* Shimmer overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent rounded-b-2xl pointer-events-none" />
+                        
+                        {/* Large Shiny Crest / Star in the center */}
+                        <div className="absolute w-11 h-11 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center shadow-md z-10 animate-pulse">
+                          <span className="text-lg">⭐</span>
+                        </div>
+                      </div>
+
+                      {/* Decorative Base Support */}
+                      <div className="text-[8px] font-pixel font-bold text-rose-400 uppercase tracking-widest mt-2 animate-pulse">
+                        {rollingGacha ? "Открываем... 💫" : "Нажми, чтобы открыть! 🖐"}
+                      </div>
+                    </div>
+
+                    {/* Vending buttons action row */}
+                    <div className="w-full mt-2 flex gap-2 shrink-0">
+                      <button
+                        disabled={gachaTickets < 1 || rollingGacha}
+                        onClick={() => {
+                          const clicker = document.getElementById("gacha-gift-box-clicker");
+                          if (clicker) clicker.click();
+                        }}
+                        className="flex-1 bg-gradient-to-r from-emerald-400 to-emerald-500 disabled:opacity-40 text-slate-950 font-black py-2.5 rounded-xl text-[9px] font-pixel shadow-xs cursor-pointer active:scale-95 transition-all border border-emerald-300/35 uppercase text-center"
+                      >
+                        За 1 Купон 🎟️
+                      </button>
+                      <button
+                        disabled={yarnCount < 100 || rollingGacha}
+                        onClick={() => {
+                          const clicker = document.getElementById("gacha-gift-box-clicker");
+                          if (clicker) {
+                            clicker.click();
+                          }
+                        }}
+                        className="flex-1 bg-gradient-to-r from-amber-400 to-amber-500 disabled:opacity-40 text-slate-950 font-black py-2.5 rounded-xl text-[9px] font-pixel shadow-xs cursor-pointer active:scale-95 transition-all border border-amber-300/35 uppercase text-center"
+                      >
+                        За 100 🧶
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3.5: ACHIEVEMENTS */}
+              {activeTab === "achievements" && (
+                <div className="flex-1 flex flex-col overflow-hidden bg-[#FFFBF0] animate-fade-in p-4 space-y-4">
+                  <div className="flex items-center gap-1.5 border-b border-rose-100 pb-2 shrink-0">
+                    <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
+                    <h3 className="text-[10px] font-pixel text-slate-700 uppercase tracking-tight">
+                      Кошачьи Достижения 🏆
+                    </h3>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-3 pt-1 scrollbar-thin select-none">
+                    {([
+                      {
+                        id: "first_cat",
+                        title: "Первый Мурка 🐱",
+                        desc: "Раскрась первого котика по номерам.",
+                        gYarnReward: 5,
+                        check: () => {
+                          return completedPuzzles.some(pId => {
+                            const templ = allAvailablePuzzles.find(t => t.id === pId);
+                            return templ && templ.category === "cats";
+                          });
+                        }
+                      },
+                      {
+                        id: "cat_level_2",
+                        title: "Заботливый Опекун ⭐",
+                        desc: "Прокачай любого котика до 2-го уровня или выше.",
+                        gYarnReward: 8,
+                        check: () => {
+                          return Object.values(catLevels).some(lvl => (lvl as number) >= 2);
+                        }
+                      },
+                      {
+                        id: "cat_level_5",
+                        title: "Кошачий Владыка 👑",
+                        desc: "Достигни максимального 5-го уровня на котике.",
+                        gYarnReward: 15,
+                        check: () => {
+                          return Object.values(catLevels).some(lvl => (lvl as number) >= 5);
+                        }
+                      },
+                      {
+                        id: "furniture_buy",
+                        title: "Уютный Дизайнер 🛋️",
+                        desc: "Поставь мебель или игрушку в Кошачий Кото-Дом.",
+                        gYarnReward: 8,
+                        check: () => {
+                          const placedCatsVal = localStorage.getItem("meowcolor_placed_cats");
+                          if (placedCatsVal) {
+                            try {
+                              const parsed = JSON.parse(placedCatsVal);
+                              return parsed.some((item: any) => item.shopId || (item.puzzleId && item.puzzleId.startsWith("toy_")));
+                            } catch (e) {}
+                          }
+                          return false;
+                        }
+                      },
+                      {
+                        id: "high_yarn",
+                        title: "Зажиточный Клубок 🧶",
+                        desc: "Накопи 1000 или более обычной пряжи одновременно.",
+                        gYarnReward: 10,
+                        check: () => yarnCount >= 1000
+                      },
+                      {
+                        id: "three_cats",
+                        title: "Кошачий Приют 🐈‍⬛",
+                        desc: "Собери коллекцию из 3 завершённых картин с котиками.",
+                        gYarnReward: 10,
+                        check: () => {
+                          return completedPuzzles.filter(pId => {
+                            const templ = allAvailablePuzzles.find(t => t.id === pId);
+                            return templ && templ.category === "cats";
+                          }).length >= 3;
+                        }
+                      }
+                    ]).map((acc) => {
+                      const isCompleted = acc.check();
+                      const isClaimed = claimedAchievements.includes(acc.id);
+
+                      return (
+                        <div
+                          key={acc.id}
+                          className={`p-3 rounded-2xl border flex flex-col justify-between gap-3 transition-all ${
+                            isClaimed
+                              ? "bg-slate-50 border-slate-200/60 opacity-65 font-medium"
+                              : isCompleted
+                              ? "bg-amber-500/5 border-amber-300 shadow-3xs"
+                              : "bg-white border-slate-100 shadow-3xs"
+                          }`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div>
+                              <h4 className="text-[10px] font-bold text-slate-800 leading-tight uppercase font-pixel tracking-tight">
+                                {acc.title}
+                              </h4>
+                              <p className="text-[8.5px] text-slate-500 leading-normal mt-0.5 font-semibold">
+                                {acc.desc}
+                              </p>
+                            </div>
+                            <span className="text-[8.5px] font-pixel bg-sky-200 text-sky-900 border border-sky-300 px-1.5 py-0.5 rounded-full shrink-0 font-bold">
+                              +{acc.gYarnReward} 💎
+                            </span>
+                          </div>
+
+                          <div className="w-full">
+                            {isClaimed ? (
+                              <span className="text-[8px] font-pixel text-slate-400 flex items-center justify-center gap-0.5 font-bold uppercase">
+                                ✓ НАГРАДА ПОЛУЧЕНА
+                              </span>
+                            ) : isCompleted ? (
+                              <button
+                                onClick={() => {
+                                  updateGoldYarn(goldYarnCount + acc.gYarnReward);
+                                  updateClaimedAchievements([...claimedAchievements, acc.id]);
+                                  SOUNDS.playSuccessColor();
+                                }}
+                                className="w-full text-center bg-sky-500 hover:bg-sky-600 text-white font-black py-2 rounded-xl text-[8.5px] font-pixel cursor-pointer tracking-wider animate-bounce uppercase border-0 shadow-3xs"
+                              >
+                                Забрать Награду! 💎
+                              </button>
+                            ) : (
+                              <span className="text-[8px] font-pixel text-slate-400 flex items-center justify-center gap-0.5 font-bold uppercase">
+                                🔒 В ПРОЦЕССЕ ВЫПОЛНЕНИЯ
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: SHOP / LAVKA BOOSTERS */}
+              {activeTab === "shop" && (
+                <div className="flex-1 flex flex-col overflow-hidden bg-[#FFFBF0] animate-fade-in p-4 space-y-4">
+                  <div className="flex items-center gap-1.5 border-b border-rose-100 pb-2 shrink-0">
+                    <ShoppingBag className="w-4 h-4 text-rose-500 animate-pulse" />
+                    <h3 className="text-[10px] font-pixel text-slate-700 uppercase tracking-tight">
+                      Лавка Бустеров и Помощников 🛍️
+                    </h3>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-3 scrollbar-thin select-none">
+                    {([
+                      {
+                        type: "wand" as const,
+                        name: "Волшебная палочка 🪄",
+                        desc: "Мгновенно раскрашивает все клетки выбранного цвета по всему холсту!",
+                        price: 80,
+                        icon: "🪄"
+                      },
+                      {
+                        type: "bomb" as const,
+                        name: "Кошачья бомбочка 💣",
+                        desc: "Взрывает и закрашивает квадрат 3х3 клетки вокруг места нажатия!",
+                        price: 120,
+                        icon: "💣"
+                      },
+                      {
+                        type: "magnifier" as const,
+                        name: "Супер-лупа 🔍",
+                        desc: "Мгновенно подсвечивает и центрирует одну случайную незакрашенную клетку!",
+                        price: 60,
+                        icon: "🔍"
+                      }
+                    ]).map((booster) => {
+                      const count = powerups[booster.type];
+                      return (
+                        <div
+                          key={booster.type}
+                          className="bg-white border border-slate-100 rounded-2xl p-3 flex gap-3 items-center justify-between shadow-3xs hover:border-slate-200 transition-all"
+                        >
+                          <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center text-2xl border border-rose-100/50 shrink-0">
+                            {booster.icon}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-[10px] font-pixel font-bold text-slate-800 flex justify-between leading-tight uppercase">
+                              <span>{booster.name}</span>
+                              <span className="text-[9px] font-pixel bg-slate-100 text-slate-500 px-1.5 rounded-full ml-1">
+                                У Вас: {count}
+                              </span>
+                            </h4>
+                            <p className="text-[8.5px] text-slate-400 mt-1 font-semibold leading-relaxed">
+                              {booster.desc}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => handleBuyPowerup(booster.type, booster.price)}
+                            className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black py-2 px-3.5 rounded-xl text-[9px] font-pixel transition-all shadow-3xs active:scale-95 cursor-pointer uppercase shrink-0 border-0"
+                          >
+                            {booster.price} 🧶
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    {/* Divider line */}
+                    <div className="border-t border-rose-100/50 my-3.5 pt-3" />
+
+                    {/* Premium Boxes section header */}
+                    <div className="flex items-center gap-1.5 pb-1">
+                      <span className="text-rose-500 text-xs animate-pulse">💎</span>
+                      <h3 className="text-[10px] font-pixel text-slate-700 uppercase tracking-tight font-black">
+                        Кошачьи Сундуки Удач (Витрина) ✨
+                      </h3>
+                    </div>
+
+                    {/* Premium boxes list */}
+                    <div className="space-y-3 pb-4">
+                      {/* Box 1 */}
+                      <div className="bg-gradient-to-r from-amber-50/50 to-orange-50/30 border border-amber-200/60 rounded-2xl p-3 flex gap-3 items-center justify-between shadow-3xs relative overflow-hidden">
+                        {/* Discount Badge */}
+                        <div className="absolute top-0 right-0 bg-rose-500 text-white font-pixel text-[6px] px-2 py-0.5 rounded-bl-lg font-bold">
+                          ХИТ!
+                        </div>
+                        
+                        <div className="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center text-2.5xl border border-amber-200 shrink-0 select-none">
+                          📦
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-[10px] font-pixel font-black text-slate-800 leading-tight uppercase">
+                            Набор Котёнка 🐈
+                          </h4>
+                          <p className="text-[8.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
+                            Содержимое: <span className="text-amber-600">500 🧶</span> + <span className="text-emerald-600">2 🎟️</span> + <span className="text-cyan-600">5 💎</span>
+                          </p>
+                          <span className="text-[7px] text-slate-400 font-bold block mt-0.5 uppercase tracking-wide">Внутри: милые угощения!</span>
+                        </div>
+
+                        <button
+                          disabled
+                          className="bg-slate-200 text-slate-400 font-pixel font-bold py-2 px-3 rounded-xl text-[9.5px] shadow-3xs uppercase shrink-0 border-0 cursor-not-allowed opacity-80"
+                        >
+                          99 ₽
+                        </button>
+                      </div>
+
+                      {/* Box 2 */}
+                      <div className="bg-gradient-to-r from-rose-50/40 to-pink-50/30 border border-pink-200/60 rounded-2xl p-3 flex gap-3 items-center justify-between shadow-3xs relative overflow-hidden">
+                        {/* Discount Badge */}
+                        <div className="absolute top-0 right-0 bg-yellow-500 text-white font-pixel text-[6px] px-2 py-0.5 rounded-bl-lg font-bold">
+                          -30%
+                        </div>
+                        
+                        <div className="w-11 h-11 rounded-xl bg-pink-100 flex items-center justify-center text-2.5xl border border-pink-200 shrink-0 select-none">
+                          🎁
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-[10px] font-pixel font-black text-slate-800 leading-tight uppercase">
+                            Коробка Кота-Обжоры 🍖
+                          </h4>
+                          <p className="text-[8.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
+                            Содержимое: <span className="text-amber-600">2000 🧶</span> + <span className="text-emerald-600">10 🎟️</span> + <span className="text-cyan-600">25 💎</span>
+                          </p>
+                          <span className="text-[7px] text-slate-400 font-bold block mt-0.5 uppercase tracking-wide">Отличный пушистый буст!</span>
+                        </div>
+
+                        <button
+                          disabled
+                          className="bg-slate-200 text-slate-400 font-pixel font-bold py-2 px-3 rounded-xl text-[9.5px] shadow-3xs uppercase shrink-0 border-0 cursor-not-allowed opacity-80"
+                        >
+                          299 ₽
+                        </button>
+                      </div>
+
+                      {/* Box 3 */}
+                      <div className="bg-gradient-to-r from-indigo-50/20 to-violet-50/20 border border-violet-200/60 rounded-2xl p-3 flex gap-3 items-center justify-between shadow-3xs relative overflow-hidden">
+                        {/* VIP Badge */}
+                        <div className="absolute top-0 right-0 bg-violet-600 text-white font-pixel text-[6px] px-2 py-0.5 rounded-bl-lg font-bold uppercase tracking-wide">
+                          VIP МЕГА
+                        </div>
+                        
+                        <div className="w-11 h-11 rounded-xl bg-violet-100 flex items-center justify-center text-2.5xl border border-violet-200 shrink-0 select-none">
+                          👑
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-[10px] font-pixel font-black text-slate-800 leading-tight uppercase">
+                            Сундук Монарха 👑
+                          </h4>
+                          <p className="text-[8.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
+                            Содержимое: <span className="text-amber-600">10000 🧶</span> + <span className="text-emerald-600">50 🎟️</span> + <span className="text-cyan-600">100 💎</span>
+                          </p>
+                          <span className="text-[7px] text-slate-400 font-bold block mt-0.5 uppercase tracking-wide">Достойно Кошачьего Лорда!</span>
+                        </div>
+
+                        <button
+                          disabled
+                          className="bg-slate-200 text-slate-400 font-pixel font-bold py-2 px-3 rounded-xl text-[9.5px] shadow-3xs uppercase shrink-0 border-0 cursor-not-allowed opacity-80"
+                        >
+                          799 ₽
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
         </main>
+
+        {/* BOTTOM TAB BAR (Only visible if selectedPuzzle is null) */}
+        {!selectedPuzzle && (
+          <div className="bg-white border-t border-rose-100 px-2 py-1.5 flex justify-around items-center shrink-0 select-none shadow-lg z-30 h-14">
+            {/* 1. ДОСТИЖЕНИЯ */}
+            <button
+              onClick={() => {
+                setActiveTab("achievements");
+                SOUNDS.playPop(0.8);
+              }}
+              className="flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative"
+            >
+              <div
+                className={`transition-all duration-300 transform ${
+                  activeTab === "achievements"
+                    ? "text-rose-600 scale-125 -translate-y-2.5 font-bold"
+                    : "text-slate-400 hover:text-slate-600 scale-100 translate-y-0"
+                }`}
+              >
+                <Trophy className="w-5 h-5" />
+              </div>
+              {activeTab === "achievements" && (
+                <span className="text-[8px] font-pixel font-bold text-rose-600 mt-0.5 animate-fade-in text-center whitespace-nowrap absolute bottom-1">
+                  Достижения
+                </span>
+              )}
+            </button>
+
+            {/* 2. ЛАВКА */}
+            <button
+              onClick={() => {
+                setActiveTab("shop");
+                SOUNDS.playPop(0.9);
+              }}
+              className="flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative"
+            >
+              <div
+                className={`transition-all duration-300 transform ${
+                  activeTab === "shop"
+                    ? "text-rose-600 scale-125 -translate-y-2.5 font-bold"
+                    : "text-slate-400 hover:text-slate-600 scale-100 translate-y-0"
+                }`}
+              >
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              {activeTab === "shop" && (
+                <span className="text-[8px] font-pixel font-bold text-rose-600 mt-0.5 animate-fade-in text-center whitespace-nowrap absolute bottom-1">
+                  Лавка
+                </span>
+              )}
+            </button>
+
+            {/* 3. ИГРАТЬ (CENTER) */}
+            <button
+              onClick={() => {
+                setActiveTab("levels");
+                SOUNDS.playPop(1.0);
+              }}
+              className="flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative"
+            >
+              <div
+                className={`transition-all duration-300 transform ${
+                  activeTab === "levels"
+                    ? "text-rose-600 scale-130 -translate-y-2.5 font-bold"
+                    : "text-slate-400 hover:text-slate-600 scale-100 translate-y-0"
+                }`}
+              >
+                <Palette className="w-5.5 h-5.5" />
+              </div>
+              {activeTab === "levels" && (
+                <span className="uppercase tracking-wide font-extrabold text-[9px] font-pixel text-rose-600 mt-0.5 animate-fade-in text-center whitespace-nowrap absolute bottom-1">
+                  Играть
+                </span>
+              )}
+            </button>
+
+            {/* 4. УДАЧА */}
+            <button
+              onClick={() => {
+                setActiveTab("gacha");
+                SOUNDS.playPop(1.1);
+              }}
+              className="flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative"
+            >
+              <div
+                className={`transition-all duration-300 transform ${
+                  activeTab === "gacha"
+                    ? "text-rose-600 scale-125 -translate-y-2.5 font-bold"
+                    : "text-slate-400 hover:text-slate-600 scale-100 translate-y-0"
+                }`}
+              >
+                <Gift className="w-5 h-5" />
+              </div>
+              {activeTab === "gacha" && (
+                <span className="text-[8px] font-pixel font-bold text-rose-600 mt-0.5 animate-fade-in text-center whitespace-nowrap absolute bottom-1">
+                  Удача
+                </span>
+              )}
+            </button>
+
+            {/* 5. ДОМИК */}
+            <button
+              onClick={() => {
+                setActiveTab("room");
+                SOUNDS.playPop(1.2);
+              }}
+              className="flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative"
+            >
+              <div
+                className={`transition-all duration-300 transform ${
+                  activeTab === "room"
+                    ? "text-rose-600 scale-125 -translate-y-2.5 font-bold"
+                    : "text-slate-400 hover:text-slate-600 scale-100 translate-y-0"
+                }`}
+              >
+                <Cat className="w-5 h-5" />
+              </div>
+              {activeTab === "room" && (
+                <span className="text-[8px] font-pixel font-bold text-rose-600 mt-0.5 animate-fade-in text-center whitespace-nowrap absolute bottom-1">
+                  Домик
+                </span>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* 4. MODALS AND FLOATING PANELS */}
 
