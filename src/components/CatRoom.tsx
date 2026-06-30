@@ -46,6 +46,7 @@ interface CatRoomProps {
   hideLevelActions?: boolean;
   onPlaceCatCallback?: () => void;
   onDragCatCallback?: () => void;
+  houseTutorialStep?: number | null;
 }
 
 interface PlacedCat {
@@ -98,6 +99,7 @@ export function CatRoom({
   hideLevelActions = false,
   onPlaceCatCallback,
   onDragCatCallback,
+  houseTutorialStep,
 }: CatRoomProps) {
   const roomRef = useRef<HTMLDivElement>(null);
   
@@ -1336,6 +1338,16 @@ export function CatRoom({
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Dynamic Tutorial Pointer for step 3: Tap/pet the cat */}
+              {houseTutorialStep === 3 && (
+                <div className="absolute -top-16 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-50 pointer-events-none animate-duration-1000">
+                  <div className="bg-emerald-500 text-slate-950 font-pixel font-bold text-[7px] px-1.5 py-0.5 rounded-full shadow-md uppercase tracking-wide mb-1 border border-emerald-300 whitespace-nowrap">
+                    Погладь котика! 👇🥰
+                  </div>
+                  <span className="text-2xl filter drop-shadow-md">👇</span>
+                </div>
+              )}
 
               {/* Cat Reposition D-PAD Overlay when hovering or tapping on it */}
               <div className="absolute -top-10 -left-6 hidden group-hover:flex gap-0.5 bg-slate-900/80 p-0.5 rounded-md shadow-lg z-50 select-none">
