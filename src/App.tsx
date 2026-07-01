@@ -1310,6 +1310,23 @@ export default function App() {
                               <span className="text-3.5xl">🎯</span>
                             </div>
                           )}
+
+                          {houseTutorialStep === 3 && (
+                            <>
+                              {/* Green bubble text kept exactly where we put it */}
+                              <div className="absolute bottom-[245px] left-1/2 -translate-x-1/2 flex flex-col items-center z-50 pointer-events-none">
+                                <div className="bg-emerald-500 text-slate-950 font-pixel font-bold text-[7.5px] px-2 py-0.5 rounded-full shadow-md uppercase tracking-wide border border-emerald-300 whitespace-nowrap animate-pulse">
+                                  Погладь котика! 👇🥰
+                                </div>
+                              </div>
+                              {/* Bouncing finger pointer moved down closer to the cat, slightly above the panel of cats */}
+                              <div className="absolute bottom-[180px] left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-50 pointer-events-none animate-duration-1000">
+                                <span className="text-2xl filter drop-shadow-md">
+                                  👇
+                                </span>
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
