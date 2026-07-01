@@ -10,6 +10,7 @@ interface PixelGridProps {
   onPixelColored: (index: number | number[]) => void;
   onUsePowerup: (powerupType: "wand" | "bomb" | "magnifier") => void;
   powerupCounts: { wand: number; bomb: number; magnifier: number };
+  onMistake?: () => void;
 }
 
 interface Particle {
@@ -29,6 +30,7 @@ export function PixelGrid({
   onPixelColored,
   onUsePowerup,
   powerupCounts,
+  onMistake,
 }: PixelGridProps) {
   const [zoom, setZoom] = useState<number>(100);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -205,6 +207,9 @@ export function PixelGrid({
     } else {
       // Mistake flash
       triggerErrorFlash(index);
+      if (onMistake) {
+        onMistake();
+      }
     }
   };
 

@@ -44,7 +44,98 @@ const startBg = new URL(
   import.meta.url,
 ).href;
 
+const menuBg = new URL(
+  "./assets/images/cozy_meadow_bg_1782930299060.jpg",
+  import.meta.url,
+).href;
+
 export default function App() {
+  // Lives/Hearts system states
+  const [menuLives, setMenuLives] = useState<number>(() => {
+    const saved = localStorage.getItem("meowcolor_lives_count");
+    return saved !== null ? parseInt(saved, 10) : 5;
+  });
+  const [lastRegenTime, setLastRegenTime] = useState<number>(() => {
+    const saved = localStorage.getItem("meowcolor_lives_last_regen");
+    return saved !== null ? parseInt(saved, 10) : Date.now();
+  });
+  const [levelLives, setLevelLives] = useState<number>(3);
+  const [levelFailedModal, setLevelFailedModal] = useState<boolean>(false);
+  const [showOutOfLivesModal, setShowOutOfLivesModal] = useState<boolean>(false);
+  const [tick, setTick] = useState<number>(0);
+
+  // Ticking effect to update countdown periodically
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Lives regeneration system (1 heart per 10 minutes)
+  useEffect(() => {
+    if (menuLives >= 5) {
+      localStorage.setItem("meowcolor_lives_last_regen", Date.now().toString());
+      setLastRegenTime(Date.now());
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - lastRegenTime;
+      const regenPeriod = 10 * 60 * 1000; // 10 minutes
+
+      if (elapsed >= regenPeriod) {
+        const livesToRestore = Math.floor(elapsed / regenPeriod);
+        const newLives = Math.min(5, menuLives + livesToRestore);
+        const leftoverTime = elapsed % regenPeriod;
+        const newRegenTime = now - leftoverTime;
+
+        setMenuLives(newLives);
+        setLastRegenTime(newRegenTime);
+
+        localStorage.setItem("meowcolor_lives_count", newLives.toString());
+        localStorage.setItem("meowcolor_lives_last_regen", newRegenTime.toString());
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [menuLives, lastRegenTime]);
+
+  const getRegenCountdown = () => {
+    const now = Date.now();
+    const elapsed = now - lastRegenTime;
+    const regenPeriod = 10 * 60 * 1000;
+    const remainingMs = Math.max(0, regenPeriod - elapsed);
+    const totalSecs = Math.floor(remainingMs / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleLevelMistake = () => {
+    setLevelLives((prev) => {
+      const next = prev - 1;
+      if (next <= 0) {
+        // Fail level!
+        setLevelFailedModal(true);
+        // Deduct 1 menu life
+        setMenuLives((mL) => {
+          const newL = Math.max(0, mL - 1);
+          localStorage.setItem("meowcolor_lives_count", newL.toString());
+          if (mL === 5) {
+            // Regeneration starts now
+            localStorage.setItem("meowcolor_lives_last_regen", Date.now().toString());
+            setLastRegenTime(Date.now());
+          }
+          return newL;
+        });
+        SOUNDS.playError();
+      }
+      return next;
+    });
+  };
+
   // 1. Core user states
   const [completedPuzzles, setCompletedPuzzles] = useState<string[]>([]);
   const [yarnCount, setYarnCount] = useState<number>(0);
@@ -361,6 +452,13 @@ export default function App() {
 
   // Select puzzle and resume progress or start fresh
   const handleSelectPuzzle = (puzzle: PuzzleTemplate) => {
+    if (menuLives <= 0) {
+      setShowOutOfLivesModal(true);
+      SOUNDS.playError();
+      return;
+    }
+
+    setLevelLives(3);
     setSelectedPuzzle(puzzle);
 
     // Check if we have partial progress saved
@@ -485,13 +583,6 @@ export default function App() {
             JSON.stringify(nextUnlocked),
           );
         }
-        // Give bonus premium crystals for unlocking a Super Cat!
-        finalGoldYarnReward = 8;
-        updateGoldYarn(goldYarnCount + 8);
-      } else {
-        // Regular levels give +1 premium crystal as milestone
-        finalGoldYarnReward = 1;
-        updateGoldYarn(goldYarnCount + 1);
       }
 
       updateYarn(yarnCount + finalReward);
@@ -830,6 +921,30 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              {/* Header bottom row for Lives/Hearts in menu */}
+              {!selectedPuzzle && (
+                <div className="flex justify-between items-center border-t border-rose-300 mt-2 pt-1.5 px-1 select-none animate-fade-in">
+                  {/* Hearts block */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[9px] font-pixel text-rose-100 uppercase tracking-wide">Жизни:</span>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((heartIdx) => (
+                        <span key={heartIdx} className="text-sm filter drop-shadow-sm transition-transform duration-200">
+                          {heartIdx <= menuLives ? "❤️" : "🖤"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Countdown */}
+                  {menuLives < 5 && (
+                    <div className="flex items-center gap-1 font-pixel text-[8.5px] text-rose-100 font-bold bg-rose-500/35 px-2 py-0.5 rounded-full border border-rose-300/20">
+                      <span>⏰ +1 через:</span>
+                      <span className="text-white font-black">{getRegenCountdown()}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </header>
 
             {/* 2. MAIN ACTIVE VIEWER VIEWPORT */}
@@ -838,17 +953,28 @@ export default function App() {
               {selectedPuzzle ? (
                 <div className="absolute inset-0 z-40 bg-white flex flex-col">
                   {/* Back Header panel */}
-                  <div className="flex items-center justify-between px-3 py-2 bg-rose-50 border-b border-rose-100">
+                  <div className="flex items-center justify-between px-3 py-2 bg-rose-50 border-b border-rose-100 select-none">
                     <button
                       id="canvas-back-btn"
                       onClick={handleExitPuzzle}
-                      className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:bg-rose-100 px-2 py-1 rounded-lg active:scale-95 cursor-pointer"
+                      className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:bg-rose-100 px-2 py-1 rounded-lg active:scale-95 cursor-pointer shrink-0"
                     >
                       <ArrowLeft className="w-4 h-4" />В меню 🏠
                     </button>
-                    <div className="text-right">
-                      <h3 className="text-xs font-pixel text-slate-800 scale-90 truncate max-w-[140px]">
-                        Твой холст 🎨
+
+                    {/* Level-specific 3 hearts */}
+                    <div className="flex items-center gap-1 bg-rose-100/60 px-2.5 py-1 rounded-full border border-rose-200">
+                      <span className="text-[7.5px] font-pixel text-rose-800 uppercase font-black tracking-tight mr-1">Попытки:</span>
+                      {[1, 2, 3].map((lvlHeartIdx) => (
+                        <span key={lvlHeartIdx} className="text-xs transition-transform duration-200">
+                          {lvlHeartIdx <= levelLives ? "❤️" : "🖤"}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <h3 className="text-xs font-pixel text-slate-800 scale-90 truncate max-w-[100px]">
+                        Холст 🎨
                       </h3>
                     </div>
                   </div>
@@ -868,6 +994,7 @@ export default function App() {
                       }}
                       onUsePowerup={handleUsePowerupDeduction}
                       powerupCounts={powerups}
+                      onMistake={handleLevelMistake}
                     />
 
                     {/* Color completed banner splash */}
@@ -1092,50 +1219,10 @@ export default function App() {
                       })()}
 
                       {/* Cozy Interactive Play Stage with Full Scenery Background */}
-                      <div className="flex-1 flex flex-col justify-between p-6 relative select-none bg-gradient-to-b from-sky-200 via-orange-100 to-amber-50 overflow-hidden border-t border-amber-100">
-                        {/* Floating ambient decorations in the sky */}
-                        <div className="absolute top-6 left-8 text-3xl opacity-60 animate-bounce duration-1000">
-                          ☁️
-                        </div>
-                        <div className="absolute top-16 left-24 text-xl opacity-40">
-                          ☁️
-                        </div>
-                        <div className="absolute top-8 right-10 text-4xl opacity-75 animate-pulse">
-                          ☀️
-                        </div>
-                        <div className="absolute top-14 right-24 text-sm opacity-50 animate-bounce duration-2000">
-                          🐦
-                        </div>
-                        <div className="absolute top-28 left-6 text-xs opacity-30">
-                          ✨
-                        </div>
-                        <div className="absolute top-20 right-8 text-xs opacity-30">
-                          ✨
-                        </div>
-
-                        {/* Grassy Meadow Field at the bottom */}
-                        <div className="absolute bottom-0 inset-x-0 h-[45%] bg-gradient-to-t from-emerald-500 via-emerald-400 to-teal-200/20 rounded-t-[4rem] border-t-4 border-emerald-400/40 z-0">
-                          {/* Sweet meadow flowers */}
-                          <div className="absolute top-4 left-10 text-sm opacity-60">
-                            🌸
-                          </div>
-                          <div className="absolute top-6 left-16 text-xs opacity-50">
-                            🌱
-                          </div>
-                          <div className="absolute top-8 right-12 text-sm opacity-60">
-                            🌻
-                          </div>
-                          <div className="absolute top-5 right-20 text-xs opacity-50">
-                            🌼
-                          </div>
-                          <div className="absolute top-12 left-1/4 text-xs opacity-50">
-                            🌸
-                          </div>
-                          <div className="absolute top-14 right-1/3 text-xs opacity-50">
-                            🍀
-                          </div>
-                        </div>
-
+                      <div 
+                        className="flex-1 flex flex-col justify-between p-6 relative select-none bg-cover bg-center overflow-hidden border-t border-amber-100/30"
+                        style={{ backgroundImage: `url(${menuBg})` }}
+                      >
                         {(() => {
                           const currentLvl = LEVEL_SEQUENCE[currentLevelIndex];
                           if (!currentLvl) return null;
@@ -1305,13 +1392,6 @@ export default function App() {
                           </div>
 
                           {/* Bouncing Hand / Arrow overlays for inside house */}
-                          {houseTutorialStep === 1 && (
-                            <div className="absolute bottom-[104px] left-[42px] flex flex-col items-center animate-bounce z-50 pointer-events-none">
-                              <div className="bg-amber-400 text-slate-950 font-pixel font-bold text-[7px] px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider border border-amber-300">
-                                Призвать! 🐱
-                              </div>
-                            </div>
-                          )}
 
                           {houseTutorialStep === 2 && (
                             <div className="absolute bottom-[240px] left-1/2 -translate-x-1/2 flex flex-col items-center animate-pulse z-30 pointer-events-none">
@@ -1804,7 +1884,7 @@ export default function App() {
                               disabled
                               className="bg-slate-200 text-slate-400 font-pixel font-bold py-2 px-3 rounded-xl text-[9.5px] shadow-3xs uppercase shrink-0 border-0 cursor-not-allowed opacity-80"
                             >
-                              99 ₽
+                              $0.99
                             </button>
                           </div>
 
@@ -1839,7 +1919,7 @@ export default function App() {
                               disabled
                               className="bg-slate-200 text-slate-400 font-pixel font-bold py-2 px-3 rounded-xl text-[9.5px] shadow-3xs uppercase shrink-0 border-0 cursor-not-allowed opacity-80"
                             >
-                              299 ₽
+                              $2.99
                             </button>
                           </div>
 
@@ -1874,7 +1954,7 @@ export default function App() {
                               disabled
                               className="bg-slate-200 text-slate-400 font-pixel font-bold py-2 px-3 rounded-xl text-[9.5px] shadow-3xs uppercase shrink-0 border-0 cursor-not-allowed opacity-80"
                             >
-                              799 ₽
+                              $7.99
                             </button>
                           </div>
                         </div>
@@ -2084,6 +2164,72 @@ export default function App() {
             )}
 
             {/* 4. MODALS AND FLOATING PANELS */}
+
+            {/* Level Failed Visual Modal */}
+            {levelFailedModal && (
+              <div className="absolute inset-0 z-50 bg-[#00000095] backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl p-6 shadow-2xl border-4 border-rose-500 max-w-sm w-full text-center relative select-none animate-fade-in">
+                  <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-300 shadow-3xs text-3xl animate-bounce">
+                    😿❌
+                  </div>
+
+                  <h2 className="text-[11px] font-pixel text-rose-800 uppercase mb-3 leading-tight font-black">
+                    Попытки закончились! 💔
+                  </h2>
+
+                  <p className="text-[10px] text-slate-600 font-pixel leading-relaxed mb-5 px-1.5">
+                    Упс! Ошибки забрали все ваши сердечки на этом уровне. Котик немного расстроен, а вы потеряли 1 жизнь в главном меню. 🐾
+                  </p>
+
+                  <button
+                    onClick={() => {
+                      setLevelFailedModal(false);
+                      setSelectedPuzzle(null); // Return to menu
+                      SOUNDS.playPop(1.1);
+                    }}
+                    className="w-full bg-gradient-to-r from-rose-500 to-rose-600 border-2 border-rose-600 p-2.5 font-pixel text-[9px] text-white rounded-2xl shadow-sm hover:bg-rose-400 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold"
+                  >
+                    Вернуться в меню 🏠
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Out of Lives Visual Modal */}
+            {showOutOfLivesModal && (
+              <div className="absolute inset-0 z-50 bg-[#00000085] backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-[#FFFDF9] rounded-3xl p-6 shadow-2xl border-4 border-rose-400 max-w-sm w-full text-center relative select-none animate-scale-up">
+                  <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-300 shadow-3xs text-3xl animate-bounce">
+                    🙀⏰
+                  </div>
+
+                  <h2 className="text-[11px] font-pixel text-rose-800 uppercase mb-3 leading-tight font-black">
+                    Нет жизней! 💔
+                  </h2>
+
+                  <p className="text-[9.5px] text-slate-600 font-semibold leading-relaxed mb-5 px-1 font-pixel">
+                    Ой! У вас закончились жизни. Подождите, пока они восстановятся (1 сердце каждые 10 минут) или погладьте котиков в домике! 🥰🐾
+                  </p>
+
+                  {menuLives < 5 && (
+                    <div className="mb-5 bg-rose-50 border border-rose-100 rounded-xl p-2.5 flex items-center justify-center gap-1.5 font-pixel text-[9px] text-rose-700 font-black uppercase">
+                      <span>⏰ Следующая жизнь через:</span>
+                      <span className="text-rose-900 bg-white border border-rose-200 px-2 py-0.5 rounded-full">{getRegenCountdown()}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setShowOutOfLivesModal(false);
+                      SOUNDS.playPop(0.9);
+                    }}
+                    className="w-full bg-gradient-to-r from-amber-400 to-amber-500 border-2 border-amber-500 p-2.5 font-pixel text-[9px] text-slate-950 rounded-2xl shadow-sm hover:bg-amber-300 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold"
+                  >
+                    Понятно, Мяу! 👍
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Level Complete visual Modal */}
             {levelCompleteModal?.active && (
