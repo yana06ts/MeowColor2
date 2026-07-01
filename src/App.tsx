@@ -1242,39 +1242,8 @@ export default function App() {
 
                           return (
                             <div className="flex-1 flex flex-col justify-between items-center z-10">
-                              {/* Centered resting cute kitten illustration on the meadow */}
-                              <div className="flex-1 flex flex-col items-center justify-center relative mt-6">
-                                {/* Giant cute cat */}
-                                <div className="relative">
-                                  <div className="text-8xl filter drop-shadow-md animate-bounce duration-3000 select-none">
-                                    {currentLvl.isSuper ? "🦁" : "🐈"}
-                                  </div>
-                                  {/* Big magical yarn next to it */}
-                                  <div className="absolute -bottom-2 -right-4 text-4xl filter drop-shadow-sm animate-pulse select-none">
-                                    🧶
-                                  </div>
-                                  {/* Cute sparkle bubble */}
-                                  <div className="absolute -top-4 -left-4 text-2xl select-none animate-pulse">
-                                    ✨
-                                  </div>
-                                  {/* Super cat crown if applicable */}
-                                  {currentLvl.isSuper && (
-                                    <div className="absolute -top-6 inset-x-0 text-center text-3xl select-none animate-bounce">
-                                      👑
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Little speaking bubble */}
-                                <div className="mt-4 bg-white/95 border border-amber-200 rounded-2xl px-4 py-1.5 shadow-sm text-center relative max-w-[180px]">
-                                  <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 border-t border-l border-amber-200" />
-                                  <span className="font-pixel text-[9px] text-amber-950 font-black uppercase tracking-wide">
-                                    {currentLvl.isSuper
-                                      ? "Редкий Гость! ✨"
-                                      : "Мяу! Разгадай меня! 🐾"}
-                                  </span>
-                                </div>
-                              </div>
+                              {/* Spacer to push play button to the center/bottom gracefully */}
+                              <div className="flex-1" />
 
                               {/* Level Details Play Button at the bottom */}
                               <div className="w-full max-w-xs px-2 mb-2">
@@ -2178,7 +2147,7 @@ export default function App() {
                   </h2>
 
                   <p className="text-[10px] text-slate-600 font-pixel leading-relaxed mb-5 px-1.5">
-                    Упс! Ошибки забрали все ваши сердечки на этом уровне. Котик немного расстроен, а вы потеряли 1 жизнь в главном меню. 🐾
+                    Упс! Ошибки забрали все ваши сердечки на этом уровне. Котик немного расстроен. 🐾
                   </p>
 
                   <button
