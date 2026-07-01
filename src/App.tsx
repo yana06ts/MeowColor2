@@ -277,6 +277,18 @@ export default function App() {
     }
   }, [tutorialStep]);
 
+  // Auto-dismiss step 3 of the house tutorial after 6 seconds
+  useEffect(() => {
+    if (houseTutorialStep === 3) {
+      const timer = setTimeout(() => {
+        localStorage.setItem("meowcolor_tutorial_house", "completed");
+        setHouseTutorialStep(null);
+        SOUNDS.playCompleteLevel();
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [houseTutorialStep]);
+
   // Save updates helper
   const updateYarn = (newVal: number) => {
     setYarnCount(newVal);
@@ -1254,6 +1266,16 @@ export default function App() {
                             setHouseTutorialStep(3);
                           }
                         }}
+                        onPetCatCallback={() => {
+                          if (houseTutorialStep === 3) {
+                            localStorage.setItem(
+                              "meowcolor_tutorial_house",
+                              "completed",
+                            );
+                            setHouseTutorialStep(null);
+                            SOUNDS.playCompleteLevel();
+                          }
+                        }}
                         onPlayLevel={() => {}}
                         houseTutorialStep={houseTutorialStep}
                       />
@@ -1273,21 +1295,11 @@ export default function App() {
                               {houseTutorialStep === 3 &&
                                 "Ура! Теперь котик счастлив на теплом коврике! Тапай по котику, чтобы погладить его, получить мотки пряжи и услышать милое «Мяу»! 🥰💖"}
                             </p>
-                            {houseTutorialStep === 3 && (
+                             {houseTutorialStep === 3 && (
                               <div className="flex justify-center mt-1">
-                                <button
-                                  onClick={() => {
-                                    localStorage.setItem(
-                                      "meowcolor_tutorial_house",
-                                      "completed",
-                                    );
-                                    setHouseTutorialStep(null);
-                                    SOUNDS.playCompleteLevel();
-                                  }}
-                                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-1.5 rounded-xl text-[8.5px] font-pixel uppercase tracking-wide cursor-pointer shadow-xs active:scale-95 border border-emerald-300/30 pointer-events-auto"
-                                >
-                                  Ура, мяу! 🥰
-                                </button>
+                                <span className="text-[7.5px] font-pixel text-emerald-600 font-bold tracking-tight animate-pulse py-1">
+                                  ✨ Погладь его, чтобы закончить! ✨
+                                </span>
                               </div>
                             )}
                           </div>
@@ -1295,10 +1307,9 @@ export default function App() {
                           {/* Bouncing Hand / Arrow overlays for inside house */}
                           {houseTutorialStep === 1 && (
                             <div className="absolute bottom-[104px] left-[42px] flex flex-col items-center animate-bounce z-50 pointer-events-none">
-                              <div className="bg-amber-400 text-slate-950 font-pixel font-bold text-[7px] px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider mb-1 border border-amber-300">
-                                Призвать! 👇
+                              <div className="bg-amber-400 text-slate-950 font-pixel font-bold text-[7px] px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider border border-amber-300">
+                                Призвать! 🐱
                               </div>
-                              <span className="text-2xl">👇</span>
                             </div>
                           )}
 
@@ -1316,14 +1327,8 @@ export default function App() {
                               {/* Green bubble text kept exactly where we put it */}
                               <div className="absolute bottom-[245px] left-1/2 -translate-x-1/2 flex flex-col items-center z-50 pointer-events-none">
                                 <div className="bg-emerald-500 text-slate-950 font-pixel font-bold text-[7.5px] px-2 py-0.5 rounded-full shadow-md uppercase tracking-wide border border-emerald-300 whitespace-nowrap animate-pulse">
-                                  Погладь котика! 👇🥰
+                                  Погладь котика! 🥰
                                 </div>
-                              </div>
-                              {/* Bouncing finger pointer moved down closer to the cat, slightly above the panel of cats */}
-                              <div className="absolute bottom-[180px] left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-50 pointer-events-none animate-duration-1000">
-                                <span className="text-2xl filter drop-shadow-md">
-                                  👇
-                                </span>
                               </div>
                             </>
                           )}
@@ -2132,134 +2137,28 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Progress towards Super Cat */}
-                  {(() => {
-                    const currentLvl = LEVEL_SEQUENCE[currentLevelIndex];
-                    if (!currentLvl) return null;
-
-                    const cycleLevels = LEVEL_SEQUENCE.filter(
-                      (item) => item.cycleNumber === currentLvl.cycleNumber,
-                    );
-                    const completedInCycle = cycleLevels.filter(
-                      (item) =>
-                        completedPuzzles.includes(item.puzzleId) ||
-                        item.puzzleId === currentLvl.puzzleId,
-                    ).length;
-                    const isSuper = currentLvl.isSuper;
-                    const levelsRemaining =
-                      cycleLevels.length - completedInCycle;
-                    const percent = Math.min(
-                      100,
-                      Math.floor((completedInCycle / cycleLevels.length) * 100),
-                    );
-
-                    if (isSuper) {
-                      return (
-                        <div className="bg-amber-50 rounded-2xl p-3 border border-amber-200/60 mb-4 text-center">
-                          <span className="text-[14px]">👑🐱🐾</span>
-                          <h4 className="text-[10px] font-pixel text-amber-800 uppercase mt-1 leading-tight font-black">
-                            СУПЕР-КОТ РАЗБЛОКИРОВАН!
-                          </h4>
-                          <p className="text-[8.5px] text-amber-600 font-semibold mt-1 leading-normal">
-                            Потрясающе! Ты завершил цикл и получил легендарного
-                            котика! Размести его в комнате!
-                          </p>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="bg-rose-50/55 rounded-2xl p-3 border border-rose-100 mb-4 text-left">
-                        <div className="flex justify-between items-center text-[8.5px] font-pixel text-rose-800 font-bold">
-                          <span>ДО СУПЕР-КОТА:</span>
-                          <span>ОСТАЛОСЬ: {levelsRemaining}</span>
-                        </div>
-
-                        <div className="w-full bg-slate-200 h-2 rounded-full mt-1.5 overflow-hidden border border-rose-100/10">
-                          <div
-                            className="bg-gradient-to-r from-rose-400 to-amber-400 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                        <div className="text-[7.5px] text-rose-500 font-bold mt-1 text-right font-pixel">
-                          Цикл завершён на {percent}% 🐾
-                        </div>
-                      </div>
-                    );
-                  })()}
-
+                  {/* Claim Reward Button (with +yarn reward and returns to main menu) */}
                   <button
                     id="claim-reward-modal-btn"
                     onClick={() => {
-                      const isSuper =
-                        LEVEL_SEQUENCE[currentLevelIndex]?.isSuper;
                       const nextIndex =
                         (currentLevelIndex + 1) % LEVEL_SEQUENCE.length;
-                      const nextLvlItem = LEVEL_SEQUENCE[nextIndex];
 
+                      // Advance to next level index
+                      setCurrentLevelIndex(nextIndex);
+                      localStorage.setItem(
+                        "meowcolor_level_index",
+                        nextIndex.toString(),
+                      );
+
+                      // Close complete modal and return to main levels list/menu
                       setLevelCompleteModal(null);
-
-                      if (isSuper) {
-                        // Just completed the super level, return to the room
-                        setCurrentLevelIndex(nextIndex);
-                        localStorage.setItem(
-                          "meowcolor_level_index",
-                          nextIndex.toString(),
-                        );
-                        setSelectedPuzzle(null);
-                      } else {
-                        // Finished regular level. Check if the next one is a Super Cat level!
-                        if (nextLvlItem?.isSuper) {
-                          const nextPuzzle =
-                            PUZZLE_TEMPLATES.find(
-                              (p) => p.id === nextLvlItem.puzzleId,
-                            ) ||
-                            GACHA_EXCLUSIVE_PUZZLES.find(
-                              (p) => p.id === nextLvlItem.puzzleId,
-                            );
-                          if (nextPuzzle) {
-                            setShowSuperCatIntro({
-                              active: true,
-                              puzzle: nextPuzzle,
-                              nextIndex: nextIndex,
-                            });
-                            SOUNDS.playCompleteLevel();
-                            return;
-                          }
-                        }
-
-                        // Otherwise normally go to the next level
-                        setCurrentLevelIndex(nextIndex);
-                        localStorage.setItem(
-                          "meowcolor_level_index",
-                          nextIndex.toString(),
-                        );
-
-                        if (completedPuzzles.length === 1) {
-                          // Return to the levels screen so they can proceed to the house tutorial
-                          setSelectedPuzzle(null);
-                        } else {
-                          const nextPuzzle =
-                            PUZZLE_TEMPLATES.find(
-                              (p) => p.id === nextLvlItem.puzzleId,
-                            ) ||
-                            GACHA_EXCLUSIVE_PUZZLES.find(
-                              (p) => p.id === nextLvlItem.puzzleId,
-                            );
-                          if (nextPuzzle) {
-                            handleSelectPuzzle(nextPuzzle);
-                          } else {
-                            setSelectedPuzzle(null);
-                          }
-                        }
-                      }
+                      setSelectedPuzzle(null);
                       SOUNDS.playPop(1.1);
                     }}
                     className="w-full bg-gradient-to-r from-amber-400 to-amber-500 border-2 border-amber-500 p-2.5 font-pixel text-[9px] text-slate-950 rounded-2xl shadow-sm hover:bg-amber-300 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold"
                   >
-                    {LEVEL_SEQUENCE[currentLevelIndex]?.isSuper
-                      ? "ЗАБРАТЬ КОТИКА И ИДТИ В ДОМИК! 🏠🐾"
-                      : "СЛЕДУЮЩИЙ УРОВЕНЬ ▶"}
+                    ЗАБРАТЬ НАГРАДУ: +{levelCompleteModal?.yarnEarned} ПРЯЖИ 🧶
                   </button>
                 </div>
               </div>

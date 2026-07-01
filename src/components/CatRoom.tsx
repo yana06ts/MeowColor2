@@ -46,6 +46,7 @@ interface CatRoomProps {
   hideLevelActions?: boolean;
   onPlaceCatCallback?: () => void;
   onDragCatCallback?: () => void;
+  onPetCatCallback?: () => void;
   houseTutorialStep?: number | null;
 }
 
@@ -99,6 +100,7 @@ export function CatRoom({
   hideLevelActions = false,
   onPlaceCatCallback,
   onDragCatCallback,
+  onPetCatCallback,
   houseTutorialStep,
 }: CatRoomProps) {
   const roomRef = useRef<HTMLDivElement>(null);
@@ -600,6 +602,10 @@ export function CatRoom({
   // Trigger Meow speech & heart bubble on tap!
   const handleTapCat = (cat: PlacedCat) => {
     SOUNDS.playMeow();
+
+    if (onPetCatCallback) {
+      onPetCatCallback();
+    }
 
     // Select random cute phrase
     const randomSpeech = CAT_MEOWS_TEXT[Math.floor(Math.random() * CAT_MEOWS_TEXT.length)];
