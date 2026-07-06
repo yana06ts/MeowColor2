@@ -49,6 +49,11 @@ const menuBg = new URL(
   import.meta.url,
 ).href;
 
+const victoryCatImg = new URL(
+  "./assets/images/victory_cat_artist_1783358596901.jpg",
+  import.meta.url,
+).href;
+
 export default function App() {
   // Lives/Hearts system states
   const [menuLives, setMenuLives] = useState<number>(() => {
@@ -188,6 +193,18 @@ export default function App() {
   const [isLevelCelebrating, setIsLevelCelebrating] = useState<boolean>(false);
   const [celebrationText, setCelebrationText] = useState<string>("");
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
+  const [seenRoomUnlock, setSeenRoomUnlock] = useState<boolean>(() => {
+    return localStorage.getItem("meowcolor_tutorial_seen_room") === "true";
+  });
+  const [seenAchievementsUnlock, setSeenAchievementsUnlock] = useState<boolean>(() => {
+    return localStorage.getItem("meowcolor_tutorial_seen_achievements") === "true";
+  });
+  const [seenShopUnlock, setSeenShopUnlock] = useState<boolean>(() => {
+    return localStorage.getItem("meowcolor_tutorial_seen_shop") === "true";
+  });
+  const [seenGachaUnlock, setSeenGachaUnlock] = useState<boolean>(() => {
+    return localStorage.getItem("meowcolor_tutorial_seen_gacha") === "true";
+  });
   const [houseTutorialStep, setHouseTutorialStep] = useState<number | null>(
     null,
   );
@@ -768,10 +785,10 @@ export default function App() {
     }
   }, [gameStarted, selectedPuzzle, completedPuzzles, allAvailablePuzzles]);
 
-  const isAchievementsLocked = completedPuzzles.length < 4;
-  const isShopLocked = completedPuzzles.length < 6;
-  const isGachaLocked = completedPuzzles.length < 8;
-  const isRoomLocked = completedPuzzles.length < 3;
+  const isAchievementsLocked = completedPuzzles.length < 5; // Opens on level 6 (after 5 levels completed)
+  const isShopLocked = completedPuzzles.length < 7; // Opens on level 8 (after 7 levels completed)
+  const isGachaLocked = completedPuzzles.length < 9; // Opens on level 10 (after 9 levels completed)
+  const isRoomLocked = completedPuzzles.length < 4; // Opens on level 5 (after 4 levels completed)
 
   const handleTabClick = (tab: "achievements" | "shop" | "levels" | "gacha" | "room") => {
     if (selectedPuzzle) return;
@@ -784,7 +801,7 @@ export default function App() {
 
     // Check if player has gacha cats unlocked but hasn't completed the house tutorial and is not on room tab
     const needsToEnterRoomForTutorial =
-      completedPuzzles.length >= 8 &&
+      completedPuzzles.length >= 4 &&
       gachaUnlockedCats.length > 0 &&
       !localStorage.getItem("meowcolor_tutorial_house") &&
       tab !== "room";
@@ -795,11 +812,29 @@ export default function App() {
       return;
     }
 
+    // Mark tab seen / tutorial completed
+    if (tab === "room") {
+      localStorage.setItem("meowcolor_tutorial_seen_room", "true");
+      setSeenRoomUnlock(true);
+    }
+    if (tab === "achievements") {
+      localStorage.setItem("meowcolor_tutorial_seen_achievements", "true");
+      setSeenAchievementsUnlock(true);
+    }
+    if (tab === "shop") {
+      localStorage.setItem("meowcolor_tutorial_seen_shop", "true");
+      setSeenShopUnlock(true);
+    }
+    if (tab === "gacha") {
+      localStorage.setItem("meowcolor_tutorial_seen_gacha", "true");
+      setSeenGachaUnlock(true);
+    }
+
     if (tab === "achievements" && isAchievementsLocked) {
       SOUNDS.playError();
       setLockedTabReason({
         title: "Достижения закрыты 🔒",
-        desc: "Пройди 4 уровня (достигни 5 уровня), чтобы разблокировать Достижения! 🏆",
+        desc: "Пройди 5 уровней (достигни 6 уровня), чтобы разблокировать Достижения! 🏆",
       });
       return;
     }
@@ -808,7 +843,7 @@ export default function App() {
       SOUNDS.playError();
       setLockedTabReason({
         title: "Лавка закрыта 🔒",
-        desc: "Пройди 6 уровней (достигни 7 уровня), чтобы открыть Лавку бустеров и декораций! 🛍️",
+        desc: "Пройди 7 уровней (достигни 8 уровня), чтобы открыть Лавку бустеров и декораций! 🛍️",
       });
       return;
     }
@@ -817,7 +852,7 @@ export default function App() {
       SOUNDS.playError();
       setLockedTabReason({
         title: "Автомат удачи закрыт 🔒",
-        desc: "Пройди 8 уровней (достигни 9 уровня), чтобы разблокировать Коробку Удачи и призвать котиков! 🎁",
+        desc: "Пройди 9 уровней (достигни 10 уровня), чтобы разблокировать Коробку Удачи и призвать котиков! 🎁",
       });
       return;
     }
@@ -826,7 +861,7 @@ export default function App() {
       SOUNDS.playError();
       setLockedTabReason({
         title: "Домик закрыт 🔒",
-        desc: "Пройди 3 уровня (достигни 4 уровня), чтобы открыть Уютный Домик Котиков! 🏠",
+        desc: "Пройди 4 уровня (достигни 5 уровня), чтобы открыть Уютный Домик Котиков! 🏠",
       });
       return;
     }
@@ -1049,11 +1084,11 @@ export default function App() {
                 <div className="flex justify-between items-center border-t border-rose-300 mt-2 pt-1.5 px-1 select-none animate-fade-in">
                   {/* Hearts block */}
                   <div className="flex items-center gap-1">
-                    <span className="text-[9px] font-pixel text-rose-100 uppercase tracking-wide">Жизни:</span>
+                    <span className="text-[9px] font-pixel text-rose-100 uppercase tracking-wide">Энергия:</span>
                     <div className="flex gap-0.5">
-                      {[1, 2, 3, 4, 5].map((heartIdx) => (
-                        <span key={heartIdx} className="text-sm filter drop-shadow-sm transition-transform duration-200">
-                          {heartIdx <= menuLives ? "❤️" : "🖤"}
+                      {[1, 2, 3, 4, 5].map((idx) => (
+                        <span key={idx} className={`text-sm filter drop-shadow-sm transition-transform duration-200 ${idx <= menuLives ? "text-amber-300 animate-pulse" : "opacity-30 text-slate-400"}`}>
+                          ⚡
                         </span>
                       ))}
                     </div>
@@ -1077,9 +1112,7 @@ export default function App() {
                   {/* Back Header panel */}
                   <div className="flex items-center justify-between px-3 py-2 bg-rose-50 border-b border-rose-100 select-none">
                     {selectedPuzzle.id === "toy_yarn_ball" ? (
-                      <div className="flex items-center gap-1.5 text-[8.5px] font-pixel text-rose-500 bg-rose-100/50 px-3 py-1.5 rounded-xl select-none font-bold scale-95 border border-rose-200">
-                        ✨ РЕЖИМ ОБУЧЕНИЯ ✨
-                      </div>
+                      <div className="w-1" />
                     ) : (
                       <button
                         id="canvas-back-btn"
@@ -1158,7 +1191,7 @@ export default function App() {
                           {/* Beautiful Gilded Golden Frame of victory_cat_artist */}
                           <div className="relative mx-auto w-48 h-36 mb-4 rounded-2xl overflow-hidden border-4 border-amber-300 shadow-md">
                             <img 
-                              src="/victory_cat_artist_1783358596901.jpg" 
+                              src={victoryCatImg} 
                               alt="Victory Cat Artist" 
                               className="w-full h-full object-cover"
                               referrerPolicy="no-referrer"
@@ -2107,7 +2140,7 @@ export default function App() {
             </main>
 
             {/* Step 2 Tutorial: Guide to House */}
-            {completedPuzzles.length >= 3 &&
+            {completedPuzzles.length >= 4 &&
               gachaUnlockedCats.length > 0 &&
               activeTab !== "room" &&
               !selectedPuzzle &&
@@ -2115,7 +2148,7 @@ export default function App() {
                 <div className="absolute inset-x-0 top-0 bottom-14 bg-slate-900/40 z-25 pointer-events-none flex flex-col justify-end">
                   <div className="bg-[#FFF6E5] border-2 border-amber-300 text-amber-950 p-3.5 rounded-2xl shadow-2xl mx-4 mb-3 pointer-events-auto text-center flex flex-col gap-1.5 select-none relative animate-fade-in">
                     <span className="text-[9px] font-pixel text-amber-700 uppercase font-bold tracking-wider">
-                      Шаг 2: Впусти котика в дом! 🏠🐾
+                      Впусти котика в дом! 🏠🐾
                     </span>
                     <p className="text-[10px] font-semibold text-slate-800 leading-relaxed">
                       Ура! У тебя появился первый котик! Он очень хочет погулять
@@ -2143,6 +2176,15 @@ export default function App() {
                   onClick={() => handleTabClick("achievements")}
                   className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isAchievementsLocked ? "opacity-60" : ""}`}
                 >
+                  {/* Newly Unlocked Pointer */}
+                  {!isAchievementsLocked && !seenAchievementsUnlock && (
+                    <div className="absolute -top-11 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-40 pointer-events-none select-none">
+                      <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-pixel font-bold text-[7px] px-2 py-0.5 rounded-lg shadow-md border border-amber-300 whitespace-nowrap">
+                        Жми сюда! 🏆
+                      </div>
+                      <span className="text-xs -mt-1 text-orange-400">▼</span>
+                    </div>
+                  )}
                   <div
                     className={`transition-all duration-300 transform ${
                       activeTab === "achievements"
@@ -2168,6 +2210,15 @@ export default function App() {
                   onClick={() => handleTabClick("shop")}
                   className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isShopLocked ? "opacity-60" : ""}`}
                 >
+                  {/* Newly Unlocked Pointer */}
+                  {!isShopLocked && !seenShopUnlock && (
+                    <div className="absolute -top-11 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-40 pointer-events-none select-none">
+                      <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-pixel font-bold text-[7px] px-2 py-0.5 rounded-lg shadow-md border border-amber-300 whitespace-nowrap">
+                        Жми сюда! 🛍️
+                      </div>
+                      <span className="text-xs -mt-1 text-orange-400">▼</span>
+                    </div>
+                  )}
                   <div
                     className={`transition-all duration-300 transform ${
                       activeTab === "shop"
@@ -2214,6 +2265,15 @@ export default function App() {
                   onClick={() => handleTabClick("gacha")}
                   className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isGachaLocked ? "opacity-60" : ""}`}
                 >
+                  {/* Newly Unlocked Pointer */}
+                  {!isGachaLocked && !seenGachaUnlock && (
+                    <div className="absolute -top-11 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-40 pointer-events-none select-none">
+                      <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-pixel font-bold text-[7px] px-2 py-0.5 rounded-lg shadow-md border border-amber-300 whitespace-nowrap">
+                        Жми сюда! 🎁
+                      </div>
+                      <span className="text-xs -mt-1 text-orange-400">▼</span>
+                    </div>
+                  )}
                   <div
                     className={`transition-all duration-300 transform ${
                       activeTab === "gacha"
@@ -2239,6 +2299,15 @@ export default function App() {
                   onClick={() => handleTabClick("room")}
                   className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isRoomLocked ? "opacity-60" : ""}`}
                 >
+                  {/* Newly Unlocked Pointer */}
+                  {!isRoomLocked && !seenRoomUnlock && (
+                    <div className="absolute -top-11 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-40 pointer-events-none select-none">
+                      <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-pixel font-bold text-[7px] px-2 py-0.5 rounded-lg shadow-md border border-amber-300 whitespace-nowrap">
+                        Жми сюда! 🏠
+                      </div>
+                      <span className="text-xs -mt-1 text-orange-400">▼</span>
+                    </div>
+                  )}
                   <div
                     className={`transition-all duration-300 transform ${
                       activeTab === "room"
@@ -2347,7 +2416,7 @@ export default function App() {
                   </h2>
 
                   <p className="text-[9.5px] text-slate-600 font-semibold leading-relaxed mb-5 px-1 font-pixel">
-                    Если ты выйдешь сейчас, уровень будет прерван и ты потеряешь <span className="text-rose-600 font-black">1 жизнь ❤️</span>! 
+                    Если ты выйдешь сейчас, уровень будет прерван и ты потеряешь <span className="text-amber-500 font-black">1 энергию ⚡</span>! 
                     Ты уверен, что хочешь сдаться?
                   </p>
 
@@ -2377,20 +2446,20 @@ export default function App() {
               <div className="absolute inset-0 z-50 bg-[#00000085] backdrop-blur-xs flex items-center justify-center p-4">
                 <div className="bg-[#FFFDF9] rounded-3xl p-6 shadow-2xl border-4 border-rose-400 max-w-sm w-full text-center relative select-none animate-scale-up">
                   <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-300 shadow-3xs text-3xl animate-bounce">
-                    🙀⏰
+                    🙀⚡
                   </div>
 
                   <h2 className="text-[11px] font-pixel text-rose-800 uppercase mb-3 leading-tight font-black">
-                    Нет жизней! 💔
+                    Нет энергии! ⚡
                   </h2>
 
                   <p className="text-[9.5px] text-slate-600 font-semibold leading-relaxed mb-5 px-1 font-pixel">
-                    Ой! У вас закончились жизни. Подождите, пока они восстановятся (1 сердце каждые 10 минут) или погладьте котиков в домике! 🥰🐾
+                    Ой! У тебя закончилась энергия. Подожди, пока она восстановится (1 молния каждые 10 минут) или погладь котиков в домике! 🥰🐾
                   </p>
 
                   {menuLives < 5 && (
                     <div className="mb-5 bg-rose-50 border border-rose-100 rounded-xl p-2.5 flex items-center justify-center gap-1.5 font-pixel text-[9px] text-rose-700 font-black uppercase">
-                      <span>⏰ Следующая жизнь через:</span>
+                      <span>⏰ Следующая энергия через:</span>
                       <span className="text-rose-900 bg-white border border-rose-200 px-2 py-0.5 rounded-full">{getRegenCountdown()}</span>
                     </div>
                   )}

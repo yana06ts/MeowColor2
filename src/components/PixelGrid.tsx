@@ -189,6 +189,20 @@ export function PixelGrid({
 
   // Handle core cell coloring logic when user draws on a cell
   const handleCellAction = (index: number, row: number, col: number, isDragSwipe: boolean = false) => {
+    // Automatically dismiss booster tutorials on any action
+    if (showWandTutorial) {
+      localStorage.setItem("meowcolor_tutorial_wand", "completed");
+      setShowWandTutorial(false);
+    }
+    if (showBombTutorial) {
+      localStorage.setItem("meowcolor_tutorial_bomb", "completed");
+      setShowBombTutorial(false);
+    }
+    if (showMagnifierTutorial) {
+      localStorage.setItem("meowcolor_tutorial_magnifier", "completed");
+      setShowMagnifierTutorial(false);
+    }
+
     const cell = progress[index];
     if (cell.filled) return; // already done
 
@@ -649,6 +663,11 @@ export function PixelGrid({
                   setToolMode("draw");
                   setActiveSpecialTool(isActive ? "pencil" : "wand");
                   SOUNDS.playPop(1.0);
+
+                  if (showWandTutorial) {
+                    localStorage.setItem("meowcolor_tutorial_wand", "completed");
+                    setShowWandTutorial(false);
+                  }
                 }}
                 className={`w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all shadow-sm ${
                   isActive
@@ -677,16 +696,6 @@ export function PixelGrid({
                   <p className="text-[9px] leading-relaxed font-semibold">
                     Ты открыл <b>Волшебную палочку</b>! Выбери её, а затем нажми на любую клетку нужного цвета, чтобы закрасить все клетки этого цвета на холсте!
                   </p>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem("meowcolor_tutorial_wand", "completed");
-                      setShowWandTutorial(false);
-                      SOUNDS.playPop(1.1);
-                    }}
-                    className="bg-amber-400 hover:bg-amber-300 font-pixel text-[8px] font-bold py-1 px-3 rounded-lg border-b-2 border-amber-600 uppercase text-slate-950 cursor-pointer"
-                  >
-                    Мяу, супер! 👍
-                  </button>
                   <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#FFF6E5] border-r-2 border-b-2 border-amber-300 rotate-45" />
                 </div>
               )}
@@ -714,6 +723,11 @@ export function PixelGrid({
                   setToolMode("draw");
                   setActiveSpecialTool(isActive ? "pencil" : "bomb");
                   SOUNDS.playPop(1.0);
+
+                  if (showBombTutorial) {
+                    localStorage.setItem("meowcolor_tutorial_bomb", "completed");
+                    setShowBombTutorial(false);
+                  }
                 }}
                 className={`w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all shadow-sm ${
                   isActive
@@ -742,16 +756,6 @@ export function PixelGrid({
                   <p className="text-[9px] leading-relaxed font-semibold">
                     Ты открыл <b>Кошачью бомбочку</b>! Выбери её, а затем нажми на клетку выбранного цвета, чтобы мгновенно закрасить всё в радиусе 3х3 клетки!
                   </p>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem("meowcolor_tutorial_bomb", "completed");
-                      setShowBombTutorial(false);
-                      SOUNDS.playPop(1.1);
-                    }}
-                    className="bg-amber-400 hover:bg-amber-300 font-pixel text-[8px] font-bold py-1 px-3 rounded-lg border-b-2 border-amber-600 uppercase text-slate-950 cursor-pointer"
-                  >
-                    Бум, круто! 👍
-                  </button>
                   <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#FFF6E5] border-r-2 border-b-2 border-amber-300 rotate-45" />
                 </div>
               )}
@@ -772,6 +776,11 @@ export function PixelGrid({
                     return;
                   }
                   handleUseMagnifier();
+
+                  if (showMagnifierTutorial) {
+                    localStorage.setItem("meowcolor_tutorial_magnifier", "completed");
+                    setShowMagnifierTutorial(false);
+                  }
                 }}
                 className={`w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all shadow-sm ${
                   isUnlocked
@@ -798,16 +807,6 @@ export function PixelGrid({
                   <p className="text-[9px] leading-relaxed font-semibold">
                     Ты открыл <b>Супер-лупу</b>! Нажми на неё, чтобы мгновенно приблизить, отцентрировать и подсветить случайную незакрашенную клетку!
                   </p>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem("meowcolor_tutorial_magnifier", "completed");
-                      setShowMagnifierTutorial(false);
-                      SOUNDS.playPop(1.1);
-                    }}
-                    className="bg-amber-400 hover:bg-amber-300 font-pixel text-[8px] font-bold py-1 px-3 rounded-lg border-b-2 border-amber-600 uppercase text-slate-950 cursor-pointer"
-                  >
-                    Понятно, Мяу! 👍
-                  </button>
                   <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#FFF6E5] border-r-2 border-b-2 border-amber-300 rotate-45" />
                 </div>
               )}
