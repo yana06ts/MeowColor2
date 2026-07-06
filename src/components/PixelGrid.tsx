@@ -12,6 +12,7 @@ interface PixelGridProps {
   powerupCounts: { wand: number; bomb: number; magnifier: number };
   onMistake?: () => void;
   tutorialStep?: number | null;
+  levelNumber?: number;
 }
 
 interface Particle {
@@ -33,6 +34,7 @@ export function PixelGrid({
   powerupCounts,
   onMistake,
   tutorialStep = null,
+  levelNumber = 1,
 }: PixelGridProps) {
   const [zoom, setZoom] = useState<number>(100);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -41,11 +43,93 @@ export function PixelGrid({
   const [particles, setParticles] = useState<Particle[]>([]);
   const [errorCell, setErrorCell] = useState<number | null>(null);
 
+  const [showWandTutorial, setShowWandTutorial] = useState<boolean>(false);
+  const [showBombTutorial, setShowBombTutorial] = useState<boolean>(false);
+  const [showMagnifierTutorial, setShowMagnifierTutorial] = useState<boolean>(false);
+  const [tempTooltip, setTempTooltip] = useState<string | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const isMouseDown = useRef(false);
   const lastPanPoint = useRef({ x: 0, y: 0 });
   const lastTouchDistance = useRef<number | null>(null);
+
+  // Trigger booster tutorials on level load
+  useEffect(() => {
+    if (levelNumber === 3 && !localStorage.getItem("meowcolor_tutorial_wand")) {
+      setShowWandTutorial(true);
+    }
+    if (levelNumber === 5 && !localStorage.getItem("meowcolor_tutorial_bomb")) {
+      setShowBombTutorial(true);
+    }
+    if (levelNumber === 7 && !localStorage.getItem("meowcolor_tutorial_magnifier")) {
+      setShowMagnifierTutorial(true);
+    }
+  }, [levelNumber]);
+
+  // Show a cute temporary tooltip notification for locked boosters
+  const showLockedTooltip = (msg: string) => {
+    setTempTooltip(msg);
+    SOUNDS.playError();
+    setTimeout(() => {
+      setTempTooltip((curr) => (curr === msg ? null : curr));
+    }, 2500);
+  };
+
+  // Magnifier center and highlight logic
+  const handleUseMagnifier = () => {
+    if (powerupCounts.magnifier <= 0) {
+      showLockedTooltip("У Вас закончились лупы! Купите их в Лавке 🛍️");
+      return;
+    }
+
+    // Find all unfilled cells for the currently selected color
+    let candidates = progress
+      .map((cell, idx) => ({ cell, idx }))
+      .filter(({ cell }) => cell.number === selectedColorNumber && !cell.filled);
+
+    // If no unfilled cells of current selected color, find any unfilled cell
+    if (candidates.length === 0) {
+      candidates = progress
+        .map((cell, idx) => ({ cell, idx }))
+        .filter(({ cell }) => cell.number !== 0 && !cell.filled);
+    }
+
+    if (candidates.length === 0) {
+      showLockedTooltip("Все клетки уже раскрашены! ✨");
+      return;
+    }
+
+    const randomChoice = candidates[Math.floor(Math.random() * candidates.length)];
+    const targetIdx = randomChoice.idx;
+
+    const r = Math.floor(targetIdx / puzzle.width);
+    const c = Math.floor(targetIdx % puzzle.width);
+
+    if (containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+
+      const cellX = c * 25 + 12.5;
+      const cellY = r * 25 + 12.5;
+      const gridCenterX = (puzzle.width * 25) / 2;
+      const gridCenterY = (puzzle.height * 25) / 2;
+
+      setZoom(150);
+      setPan({
+        x: (gridCenterX - cellX) * 1.5,
+        y: (gridCenterY - cellY) * 1.5,
+      });
+    }
+
+    setErrorCell(targetIdx);
+    setTimeout(() => {
+      setErrorCell((curr) => (curr === targetIdx ? null : curr));
+    }, 1500);
+
+    onUsePowerup("magnifier");
+    SOUNDS.playSuccessColor();
+  };
 
   // Trigger temporary red flash for error feedback
   const triggerErrorFlash = (index: number) => {
@@ -533,6 +617,204 @@ export function PixelGrid({
             })}
           </div>
         </div>
+      </div>
+
+      {/* Powerups/Boosters Bar */}
+      <div className="bg-gradient-to-r from-rose-50/50 to-orange-50/50 border-t border-rose-100/60 px-4 py-2.5 flex justify-center items-center gap-4 shrink-0 select-none relative">
+        
+        {/* Temporary locked tooltip bubble */}
+        {tempTooltip && (
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white font-pixel text-[8px] px-3 py-1.5 rounded-lg shadow-lg z-50 animate-fade-in border border-slate-700 max-w-xs whitespace-nowrap">
+            ⚠️ {tempTooltip}
+          </div>
+        )}
+
+        {/* Booster 1: Wand */}
+        {(() => {
+          const isUnlocked = levelNumber >= 3;
+          const isActive = activeSpecialTool === "wand";
+          return (
+            <div className="relative">
+              <button
+                id="powerup-wand-btn"
+                onClick={() => {
+                  if (!isUnlocked) {
+                    showLockedTooltip("Волшебная палочка открывается на 3 цене! 🔒");
+                    return;
+                  }
+                  if (powerupCounts.wand <= 0) {
+                    showLockedTooltip("Купите волшебные палочки в Лавке! 🛍️");
+                    return;
+                  }
+                  setToolMode("draw");
+                  setActiveSpecialTool(isActive ? "pencil" : "wand");
+                  SOUNDS.playPop(1.0);
+                }}
+                className={`w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all shadow-sm ${
+                  isActive
+                    ? "bg-amber-400 text-slate-950 scale-110 ring-4 ring-amber-300 ring-offset-1 border-2 border-amber-500"
+                    : isUnlocked
+                    ? "bg-white hover:bg-rose-50 text-slate-700 border-2 border-rose-100 hover:scale-105"
+                    : "bg-slate-100 text-slate-400 border-2 border-slate-200 cursor-not-allowed opacity-60"
+                }`}
+                title={isUnlocked ? "Волшебная палочка 🪄" : "Заблокировано до 3 уровня"}
+              >
+                <span className="text-lg">🪄</span>
+                {isUnlocked && (
+                  <span className="absolute -bottom-1 -right-1 bg-rose-500 text-white font-pixel text-[7px] px-1.5 py-0.5 rounded-full border border-white font-bold leading-none scale-90">
+                    {powerupCounts.wand}
+                  </span>
+                )}
+                {!isUnlocked && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-full text-xs">🔒</span>
+                )}
+              </button>
+
+              {/* Wand Tutorial Dialog */}
+              {showWandTutorial && (
+                <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-50 bg-[#FFF6E5] text-[#5C3A21] border-2 border-amber-300 p-3 rounded-xl shadow-2xl w-48 text-center flex flex-col gap-1.5 select-none animate-fade-in pointer-events-auto">
+                  <div className="text-[8px] font-pixel bg-amber-400 text-amber-950 font-bold px-1.5 py-0.5 rounded-full mx-auto uppercase">Новый бустер! 🪄</div>
+                  <p className="text-[9px] leading-relaxed font-semibold">
+                    Ты открыл <b>Волшебную палочку</b>! Выбери её, а затем нажми на любую клетку нужного цвета, чтобы закрасить все клетки этого цвета на холсте!
+                  </p>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem("meowcolor_tutorial_wand", "completed");
+                      setShowWandTutorial(false);
+                      SOUNDS.playPop(1.1);
+                    }}
+                    className="bg-amber-400 hover:bg-amber-300 font-pixel text-[8px] font-bold py-1 px-3 rounded-lg border-b-2 border-amber-600 uppercase text-slate-950 cursor-pointer"
+                  >
+                    Мяу, супер! 👍
+                  </button>
+                  <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#FFF6E5] border-r-2 border-b-2 border-amber-300 rotate-45" />
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Booster 2: Bomb */}
+        {(() => {
+          const isUnlocked = levelNumber >= 5;
+          const isActive = activeSpecialTool === "bomb";
+          return (
+            <div className="relative">
+              <button
+                id="powerup-bomb-btn"
+                onClick={() => {
+                  if (!isUnlocked) {
+                    showLockedTooltip("Кошачья бомбочка открывается на 5 уровне! 🔒");
+                    return;
+                  }
+                  if (powerupCounts.bomb <= 0) {
+                    showLockedTooltip("Купите бомбочки в Лавке! 🛍️");
+                    return;
+                  }
+                  setToolMode("draw");
+                  setActiveSpecialTool(isActive ? "pencil" : "bomb");
+                  SOUNDS.playPop(1.0);
+                }}
+                className={`w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all shadow-sm ${
+                  isActive
+                    ? "bg-rose-500 text-white scale-110 ring-4 ring-rose-300 ring-offset-1 border-2 border-rose-600"
+                    : isUnlocked
+                    ? "bg-white hover:bg-rose-50 text-slate-700 border-2 border-rose-100 hover:scale-105"
+                    : "bg-slate-100 text-slate-400 border-2 border-slate-200 cursor-not-allowed opacity-60"
+                }`}
+                title={isUnlocked ? "Кошачья бомбочка 💣" : "Заблокировано до 5 уровня"}
+              >
+                <span className="text-lg">💣</span>
+                {isUnlocked && (
+                  <span className="absolute -bottom-1 -right-1 bg-rose-500 text-white font-pixel text-[7px] px-1.5 py-0.5 rounded-full border border-white font-bold leading-none scale-90">
+                    {powerupCounts.bomb}
+                  </span>
+                )}
+                {!isUnlocked && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-full text-xs">🔒</span>
+                )}
+              </button>
+
+              {/* Bomb Tutorial Dialog */}
+              {showBombTutorial && (
+                <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-50 bg-[#FFF6E5] text-[#5C3A21] border-2 border-amber-300 p-3 rounded-xl shadow-2xl w-48 text-center flex flex-col gap-1.5 select-none animate-fade-in pointer-events-auto">
+                  <div className="text-[8px] font-pixel bg-amber-400 text-amber-950 font-bold px-1.5 py-0.5 rounded-full mx-auto uppercase">Новый бустер! 💣</div>
+                  <p className="text-[9px] leading-relaxed font-semibold">
+                    Ты открыл <b>Кошачью бомбочку</b>! Выбери её, а затем нажми на клетку выбранного цвета, чтобы мгновенно закрасить всё в радиусе 3х3 клетки!
+                  </p>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem("meowcolor_tutorial_bomb", "completed");
+                      setShowBombTutorial(false);
+                      SOUNDS.playPop(1.1);
+                    }}
+                    className="bg-amber-400 hover:bg-amber-300 font-pixel text-[8px] font-bold py-1 px-3 rounded-lg border-b-2 border-amber-600 uppercase text-slate-950 cursor-pointer"
+                  >
+                    Бум, круто! 👍
+                  </button>
+                  <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#FFF6E5] border-r-2 border-b-2 border-amber-300 rotate-45" />
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Booster 3: Magnifier */}
+        {(() => {
+          const isUnlocked = levelNumber >= 7;
+          return (
+            <div className="relative">
+              <button
+                id="powerup-magnifier-btn"
+                onClick={() => {
+                  if (!isUnlocked) {
+                    showLockedTooltip("Супер-лупа открывается на 7 уровне! 🔒");
+                    return;
+                  }
+                  handleUseMagnifier();
+                }}
+                className={`w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all shadow-sm ${
+                  isUnlocked
+                    ? "bg-white hover:bg-rose-50 text-slate-700 border-2 border-rose-100 hover:scale-105 active:scale-95"
+                    : "bg-slate-100 text-slate-400 border-2 border-slate-200 cursor-not-allowed opacity-60"
+                }`}
+                title={isUnlocked ? "Супер-лупа 🔍" : "Заблокировано до 7 уровня"}
+              >
+                <span className="text-lg">🔍</span>
+                {isUnlocked && (
+                  <span className="absolute -bottom-1 -right-1 bg-rose-500 text-white font-pixel text-[7px] px-1.5 py-0.5 rounded-full border border-white font-bold leading-none scale-90">
+                    {powerupCounts.magnifier}
+                  </span>
+                )}
+                {!isUnlocked && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-full text-xs">🔒</span>
+                )}
+              </button>
+
+              {/* Magnifier Tutorial Dialog */}
+              {showMagnifierTutorial && (
+                <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-50 bg-[#FFF6E5] text-[#5C3A21] border-2 border-amber-300 p-3 rounded-xl shadow-2xl w-48 text-center flex flex-col gap-1.5 select-none animate-fade-in pointer-events-auto">
+                  <div className="text-[8px] font-pixel bg-amber-400 text-amber-950 font-bold px-1.5 py-0.5 rounded-full mx-auto uppercase">Новый бустер! 🔍</div>
+                  <p className="text-[9px] leading-relaxed font-semibold">
+                    Ты открыл <b>Супер-лупу</b>! Нажми на неё, чтобы мгновенно приблизить, отцентрировать и подсветить случайную незакрашенную клетку!
+                  </p>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem("meowcolor_tutorial_magnifier", "completed");
+                      setShowMagnifierTutorial(false);
+                      SOUNDS.playPop(1.1);
+                    }}
+                    className="bg-amber-400 hover:bg-amber-300 font-pixel text-[8px] font-bold py-1 px-3 rounded-lg border-b-2 border-amber-600 uppercase text-slate-950 cursor-pointer"
+                  >
+                    Понятно, Мяу! 👍
+                  </button>
+                  <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#FFF6E5] border-r-2 border-b-2 border-amber-300 rotate-45" />
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
       </div>
 
     </div>
