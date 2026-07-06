@@ -218,6 +218,20 @@ export default function App() {
   const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
   const [showExitScreen, setShowExitScreen] = useState<boolean>(false);
 
+  const [lockedTabReason, setLockedTabReason] = useState<{ title: string; desc: string } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   // Load state on mount
   useEffect(() => {
     // completed puzzles
@@ -729,7 +743,79 @@ export default function App() {
     }
   }, [gameStarted, selectedPuzzle, completedPuzzles, allAvailablePuzzles]);
 
-  const isTabsLocked = completedPuzzles.length < 3;
+  const isAchievementsLocked = completedPuzzles.length < 1;
+  const isShopLocked = completedPuzzles.length < 2;
+  const isGachaLocked = completedPuzzles.length < 3;
+  const isRoomLocked = completedPuzzles.length < 3 || gachaUnlockedCats.length === 0;
+
+  const handleTabClick = (tab: "achievements" | "shop" | "levels" | "gacha" | "room") => {
+    if (selectedPuzzle) return;
+
+    if (houseTutorialStep !== null) {
+      SOUNDS.playError();
+      showToast("Сначала пройди обучение в домике! 🐾");
+      return;
+    }
+
+    // Check if player has gacha cats unlocked but hasn't completed the house tutorial and is not on room tab
+    const needsToEnterRoomForTutorial =
+      completedPuzzles.length >= 3 &&
+      gachaUnlockedCats.length > 0 &&
+      !localStorage.getItem("meowcolor_tutorial_house") &&
+      tab !== "room";
+
+    if (needsToEnterRoomForTutorial) {
+      SOUNDS.playError();
+      showToast("Впусти своего котика в домик! 🏠 Нажми вкладку «Домик»");
+      return;
+    }
+
+    if (tab === "achievements" && isAchievementsLocked) {
+      SOUNDS.playError();
+      setLockedTabReason({
+        title: "Достижения закрыты 🔒",
+        desc: "Пройди 1 уровень (Обучение 🧶), чтобы разблокировать Достижения!",
+      });
+      return;
+    }
+
+    if (tab === "shop" && isShopLocked) {
+      SOUNDS.playError();
+      setLockedTabReason({
+        title: "Лавка закрыта 🔒",
+        desc: "Пройди 2 уровня, чтобы открыть Лавку бустеров и декораций!",
+      });
+      return;
+    }
+
+    if (tab === "gacha" && isGachaLocked) {
+      SOUNDS.playError();
+      setLockedTabReason({
+        title: "Автомат удачи закрыт 🔒",
+        desc: "Пройди 3 уровня, чтобы разблокировать Коробку Удачи и призвать котиков!",
+      });
+      return;
+    }
+
+    if (tab === "room" && isRoomLocked) {
+      SOUNDS.playError();
+      if (completedPuzzles.length < 3) {
+        setLockedTabReason({
+          title: "Домик закрыт 🔒",
+          desc: "Пройди 3 уровня и призови первого котика, чтобы открыть Домик!",
+        });
+      } else {
+        setLockedTabReason({
+          title: "Домик пустует! 😿",
+          desc: "У тебя пока нет котиков! Сначала открой Коробку Удачи во вкладке «Удача», чтобы призвать котика!",
+        });
+      }
+      return;
+    }
+
+    setActiveTab(tab);
+    SOUNDS.playPop(1.0);
+  };
 
   return (
     <div className="h-[100dvh] w-screen bg-[#F0E6D2] font-sans antialiased text-slate-800 flex justify-center items-center overflow-hidden">
@@ -2009,18 +2095,8 @@ export default function App() {
               <div className="bg-white border-t border-rose-100 px-2 py-1.5 flex justify-around items-center shrink-0 select-none shadow-lg z-30 h-14">
                 {/* 1. ДОСТИЖЕНИЯ */}
                 <button
-                  onClick={() => {
-                    if (isTabsLocked) {
-                      SOUNDS.playError();
-                      alert(
-                        "Заблокировано! 🔒 Пройди 3 уровня, чтобы открыть достижения!",
-                      );
-                      return;
-                    }
-                    setActiveTab("achievements");
-                    SOUNDS.playPop(0.8);
-                  }}
-                  className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isTabsLocked ? "opacity-60" : ""}`}
+                  onClick={() => handleTabClick("achievements")}
+                  className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isAchievementsLocked ? "opacity-60" : ""}`}
                 >
                   <div
                     className={`transition-all duration-300 transform ${
@@ -2029,13 +2105,13 @@ export default function App() {
                         : "text-slate-400 hover:text-slate-600 scale-100 translate-y-0"
                     }`}
                   >
-                    {isTabsLocked ? (
+                    {isAchievementsLocked ? (
                       <Lock className="w-4 h-4 text-slate-400" />
                     ) : (
                       <Trophy className="w-5 h-5" />
                     )}
                   </div>
-                  {!isTabsLocked && activeTab === "achievements" && (
+                  {!isAchievementsLocked && activeTab === "achievements" && (
                     <span className="text-[8px] font-pixel font-bold text-slate-500 mt-0.5 animate-fade-in text-center whitespace-nowrap absolute bottom-1">
                       Достижения
                     </span>
@@ -2044,18 +2120,8 @@ export default function App() {
 
                 {/* 2. ЛАВКА */}
                 <button
-                  onClick={() => {
-                    if (isTabsLocked) {
-                      SOUNDS.playError();
-                      alert(
-                        "Заблокировано! 🔒 Пройди 3 уровня, чтобы открыть лавку украшений!",
-                      );
-                      return;
-                    }
-                    setActiveTab("shop");
-                    SOUNDS.playPop(0.9);
-                  }}
-                  className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isTabsLocked ? "opacity-60" : ""}`}
+                  onClick={() => handleTabClick("shop")}
+                  className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isShopLocked ? "opacity-60" : ""}`}
                 >
                   <div
                     className={`transition-all duration-300 transform ${
@@ -2064,13 +2130,13 @@ export default function App() {
                         : "text-slate-400 hover:text-slate-600 scale-100 translate-y-0"
                     }`}
                   >
-                    {isTabsLocked ? (
+                    {isShopLocked ? (
                       <Lock className="w-4 h-4 text-slate-400" />
                     ) : (
                       <ShoppingBag className="w-5 h-5" />
                     )}
                   </div>
-                  {!isTabsLocked && activeTab === "shop" && (
+                  {!isShopLocked && activeTab === "shop" && (
                     <span className="text-[8px] font-pixel font-bold text-slate-500 mt-0.5 animate-fade-in text-center whitespace-nowrap absolute bottom-1">
                       Лавка
                     </span>
@@ -2079,10 +2145,7 @@ export default function App() {
 
                 {/* 3. ИГРАТЬ (CENTER) */}
                 <button
-                  onClick={() => {
-                    setActiveTab("levels");
-                    SOUNDS.playPop(1.0);
-                  }}
+                  onClick={() => handleTabClick("levels")}
                   className="flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative"
                 >
                   <div
@@ -2103,18 +2166,8 @@ export default function App() {
 
                 {/* 4. УДАЧА */}
                 <button
-                  onClick={() => {
-                    if (isTabsLocked) {
-                      SOUNDS.playError();
-                      alert(
-                        "Заблокировано! 🔒 Пройди 3 уровня, чтобы открыть автомат удачи!",
-                      );
-                      return;
-                    }
-                    setActiveTab("gacha");
-                    SOUNDS.playPop(1.1);
-                  }}
-                  className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isTabsLocked ? "opacity-60" : ""}`}
+                  onClick={() => handleTabClick("gacha")}
+                  className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isGachaLocked ? "opacity-60" : ""}`}
                 >
                   <div
                     className={`transition-all duration-300 transform ${
@@ -2123,13 +2176,13 @@ export default function App() {
                         : "text-slate-400 hover:text-slate-600 scale-100 translate-y-0"
                     }`}
                   >
-                    {isTabsLocked ? (
+                    {isGachaLocked ? (
                       <Lock className="w-4 h-4 text-slate-400" />
                     ) : (
                       <Gift className="w-5 h-5" />
                     )}
                   </div>
-                  {!isTabsLocked && activeTab === "gacha" && (
+                  {!isGachaLocked && activeTab === "gacha" && (
                     <span className="text-[8px] font-pixel font-bold text-slate-500 mt-0.5 animate-fade-in text-center whitespace-nowrap absolute bottom-1">
                       Удача
                     </span>
@@ -2138,18 +2191,8 @@ export default function App() {
 
                 {/* 5. ДОМИК */}
                 <button
-                  onClick={() => {
-                    if (isTabsLocked) {
-                      SOUNDS.playError();
-                      alert(
-                        "Заблокировано! 🔒 Пройди 3 уровня, чтобы открыть домик котиков!",
-                      );
-                      return;
-                    }
-                    setActiveTab("room");
-                    SOUNDS.playPop(1.2);
-                  }}
-                  className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isTabsLocked ? "opacity-60" : ""}`}
+                  onClick={() => handleTabClick("room")}
+                  className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isRoomLocked ? "opacity-60" : ""}`}
                 >
                   <div
                     className={`transition-all duration-300 transform ${
@@ -2158,18 +2201,59 @@ export default function App() {
                         : "text-slate-400 hover:text-slate-600 scale-100 translate-y-0"
                     }`}
                   >
-                    {isTabsLocked ? (
+                    {isRoomLocked ? (
                       <Lock className="w-4 h-4 text-slate-400" />
                     ) : (
                       <Cat className="w-5 h-5" />
                     )}
                   </div>
-                  {!isTabsLocked && activeTab === "room" && (
+                  {!isRoomLocked && activeTab === "room" && (
                     <span className="text-[8px] font-pixel font-bold text-slate-500 mt-0.5 animate-fade-in text-center whitespace-nowrap absolute bottom-1">
                       Домик
                     </span>
                   )}
                 </button>
+              </div>
+            )}
+
+            {/* 4. MODALS AND FLOATING PANELS */}
+
+            {/* Custom Toast Notification Overlay */}
+            {toast && (
+              <div className="absolute top-16 left-1/2 -translate-x-1/2 z-55 pointer-events-none w-11/12 max-w-xs animate-fade-in">
+                <div className="bg-[#5C3A21] text-[#FFF6E5] text-[9.5px] font-pixel font-bold px-4 py-2.5 rounded-2xl shadow-2xl border-2 border-amber-300 flex items-center justify-center gap-2 text-center">
+                  <span>🐾</span>
+                  <span>{toast}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Custom Locked Tab Modal */}
+            {lockedTabReason && (
+              <div className="absolute inset-0 z-55 bg-[#00000085] backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-[#FFFDF9] rounded-3xl p-6 shadow-2xl border-4 border-amber-400 max-w-sm w-full text-center relative select-none animate-scale-up">
+                  <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-300 shadow-3xs text-2xl animate-bounce">
+                    🔒😹
+                  </div>
+
+                  <h2 className="text-[11px] font-pixel text-amber-900 uppercase mb-3 leading-tight font-black">
+                    {lockedTabReason.title}
+                  </h2>
+
+                  <p className="text-[9.5px] text-slate-600 font-pixel leading-relaxed mb-5 px-1 font-semibold">
+                    {lockedTabReason.desc}
+                  </p>
+
+                  <button
+                    onClick={() => {
+                      setLockedTabReason(null);
+                      SOUNDS.playPop(0.9);
+                    }}
+                    className="w-full bg-gradient-to-r from-amber-400 to-amber-500 border-2 border-amber-500 p-2.5 font-pixel text-[9px] text-slate-950 rounded-2xl shadow-sm hover:bg-amber-300 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold"
+                  >
+                    Понятно, Мяу! 👍
+                  </button>
+                </div>
               </div>
             )}
 
