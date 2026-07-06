@@ -114,6 +114,10 @@ export default function App() {
   };
 
   const handleLevelMistake = () => {
+    if (selectedPuzzle?.id === "toy_yarn_ball") {
+      // Tutorial level mistake is ignored (no levelLives deducted or level failing modal triggered)
+      return;
+    }
     setLevelLives((prev) => {
       const next = prev - 1;
       if (next <= 0) {
@@ -210,7 +214,7 @@ export default function App() {
     puzzle: PuzzleTemplate;
     nextIndex: number;
   } | null>(null);
-  const [gameStarted, setGameStarted] = useState<boolean>(false);
+  const [gameStarted, setGameStarted] = useState<boolean>(true);
   const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
   const [showExitScreen, setShowExitScreen] = useState<boolean>(false);
 
@@ -711,13 +715,27 @@ export default function App() {
     ...GACHA_EXCLUSIVE_PUZZLES,
   ];
 
+  // Auto-start first puzzle if tutorial is not completed yet
+  useEffect(() => {
+    if (gameStarted && !selectedPuzzle && completedPuzzles.length === 0) {
+      const firstLvl = LEVEL_SEQUENCE[0];
+      const firstPuzzle = allAvailablePuzzles.find(
+        (p) => p.id === firstLvl.puzzleId,
+      );
+      if (firstPuzzle) {
+        handleSelectPuzzle(firstPuzzle);
+        setTutorialStep(1);
+      }
+    }
+  }, [gameStarted, selectedPuzzle, completedPuzzles, allAvailablePuzzles]);
+
   const isTabsLocked = completedPuzzles.length < 3;
 
   return (
     <div className="h-[100dvh] w-screen bg-[#F0E6D2] font-sans antialiased text-slate-800 flex justify-center items-center overflow-hidden">
       {/* Phone visual Mockup frame container */}
       <div className="w-full h-full max-w-md bg-white shadow-2xl flex flex-col relative overflow-hidden border-rose-300/40 md:h-[94vh] md:max-h-[850px] md:rounded-[36px] md:border-8">
-        {!gameStarted ? (
+        {false ? (
           /* Start Screen with full height & beautiful background image */
           <div
             className="flex-1 relative flex flex-col justify-between p-6 select-none bg-cover bg-center text-white overflow-hidden animate-fade-in"
@@ -922,8 +940,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Header bottom row for Lives/Hearts in menu */}
-              {!selectedPuzzle && (
+              {/* Header bottom row for Lives/Hearts in menu (only shown after tutorial completion) */}
+              {!selectedPuzzle && completedPuzzles.includes("toy_yarn_ball") && (
                 <div className="flex justify-between items-center border-t border-rose-300 mt-2 pt-1.5 px-1 select-none animate-fade-in">
                   {/* Hearts block */}
                   <div className="flex items-center gap-1">
@@ -963,14 +981,20 @@ export default function App() {
                     </button>
 
                     {/* Level-specific 3 hearts */}
-                    <div className="flex items-center gap-1 bg-rose-100/60 px-2.5 py-1 rounded-full border border-rose-200">
-                      <span className="text-[7.5px] font-pixel text-rose-800 uppercase font-black tracking-tight mr-1">Попытки:</span>
-                      {[1, 2, 3].map((lvlHeartIdx) => (
-                        <span key={lvlHeartIdx} className="text-xs transition-transform duration-200">
-                          {lvlHeartIdx <= levelLives ? "❤️" : "🖤"}
-                        </span>
-                      ))}
-                    </div>
+                    {selectedPuzzle.id !== "toy_yarn_ball" ? (
+                      <div className="flex items-center gap-1 bg-rose-100/60 px-2.5 py-1 rounded-full border border-rose-200">
+                        <span className="text-[7.5px] font-pixel text-rose-800 uppercase font-black tracking-tight mr-1">Попытки:</span>
+                        {[1, 2, 3].map((lvlHeartIdx) => (
+                          <span key={lvlHeartIdx} className="text-xs transition-transform duration-200">
+                            {lvlHeartIdx <= levelLives ? "❤️" : "🖤"}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 bg-emerald-100/60 px-2.5 py-1 rounded-full border border-emerald-200">
+                        <span className="text-[7.5px] font-pixel text-emerald-800 uppercase font-black tracking-tight">✨ Обучение ✨</span>
+                      </div>
+                    )}
 
                     <div className="text-right shrink-0">
                       <h3 className="text-xs font-pixel text-slate-800 scale-90 truncate max-w-[100px]">
@@ -985,6 +1009,7 @@ export default function App() {
                       puzzle={selectedPuzzle}
                       progress={currentProgress}
                       selectedColorNumber={selectedColorNumber}
+                      tutorialStep={tutorialStep}
                       onPixelColored={(idx) => {
                         handlePixelColored(idx);
                         // Advancing tutorial step 2
@@ -1048,7 +1073,7 @@ export default function App() {
                             {tutorialStep === 1 &&
                               "Мяу! Нажми на круглую кнопку с цифрой '1' в палитре внизу экрана, чтобы выбрать первый цвет! 👇"}
                             {tutorialStep === 2 &&
-                              "Мур-р! Отлично! Теперь найди на рисунке серые клетки с цифрой '1' и тапай по ним, чтобы закрасить! 🖌️🐾"}
+                              "Мур-р! Отлично! Теперь найди подсвеченные розовым клетки с цифрой '1' и просто проведи по ним пальцем или мышкой, чтобы закрасить! 🖌️🐾"}
                             {tutorialStep === 3 &&
                               "Замечательно! Ты красишь как настоящий мастер! ✨ Нажимай на другие цвета или пользуйся волшебной палочкой 🪄 и бомбочкой 💣 для супер-раскрашивания!"}
                           </p>
@@ -1078,12 +1103,12 @@ export default function App() {
                   </div>
 
                   {/* Dynamic Footer color selection palette picker */}
-                  <div className="bg-white border-t border-rose-100 p-3 flex flex-col gap-2 shrink-0 select-none">
-                    <span className="text-[9px] font-pixel text-slate-400 text-center">
+                  <div className="bg-white border-t border-rose-100 pt-2 pb-5 px-3 flex flex-col gap-1.5 shrink-0 select-none">
+                    <span className="text-[9px] font-pixel text-slate-400 text-center uppercase tracking-wider">
                       ВЫБЕРИ ЦВЕТ И КЛИКАЙ НА ПОДХОДЯЩИЕ ЦИФРЫ:
                     </span>
 
-                    <div className="flex gap-2.5 overflow-x-auto pb-1 px-1 justify-center no-scrollbar">
+                    <div className="flex gap-3 overflow-x-auto py-2.5 px-3 justify-start sm:justify-center no-scrollbar">
                       {selectedPuzzle.colors.map((color) => {
                         const isSelected = color.number === selectedColorNumber;
 
@@ -1096,11 +1121,18 @@ export default function App() {
                         const remainder = totalTarget - filledCount;
                         const isDone = remainder === 0;
 
+                        // Tutorial step 1 blocks selection of any other color
+                        const isTutorialBlocked = tutorialStep === 1 && color.number !== 1;
+
                         return (
                           <button
                             key={color.number}
                             id={`palette-color-btn-${color.number}`}
                             onClick={() => {
+                              if (isTutorialBlocked) {
+                                SOUNDS.playError();
+                                return;
+                              }
                               if (!isDone) {
                                 setSelectedColorNumber(color.number);
                                 SOUNDS.playPop(1.0 + color.number * 0.1);
@@ -1113,10 +1145,19 @@ export default function App() {
                               isSelected
                                 ? "scale-115 ring-4 ring-rose-400 ring-offset-1"
                                 : "hover:scale-105"
-                            } ${isDone ? "opacity-35 cursor-not-allowed scale-90" : "cursor-pointer"}`}
+                            } ${isDone ? "opacity-35 cursor-not-allowed scale-90" : "cursor-pointer"} ${
+                              isTutorialBlocked ? "opacity-20 cursor-not-allowed pointer-events-none" : ""
+                            }`}
                             style={{ backgroundColor: color.hex }}
                             title={color.name}
                           >
+                            {/* Tutorial Hand Overlay */}
+                            {tutorialStep === 1 && color.number === 1 && (
+                              <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-50 pointer-events-none">
+                                <span className="text-2xl">👇</span>
+                              </div>
+                            )}
+
                             {!isDone ? (
                               <span
                                 className="font-pixel text-[10px] font-bold drop-shadow-md text-white"

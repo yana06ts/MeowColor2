@@ -16,10 +16,10 @@ export const CAT_FAVORITE_TOYS: Record<string, { id: string; name: string; emoji
 
 // Cute buyable skins for golden yarn
 export const AVAILABLE_SKINS = [
-  { id: "bow", name: "Розовый Облик", emoji: "🎀", price: 3, desc: "+30% к пассивной пряже котика!" },
-  { id: "galaxy", name: "Космический Облик", emoji: "🌌", price: 5, desc: "+60% к пассивной пряже котика!" },
-  { id: "crown", name: "Принцессный Облик", emoji: "👑", price: 8, desc: "+80% к пассивной пряже котика!" },
-  { id: "gold", name: "Золотой Облик", emoji: "✨", price: 12, desc: "+120% к пассивной пряже котика!" },
+  { id: "bow", name: "Розовый Облик", emoji: "🎀", price: 3, desc: "Роскошный розовый бантик на ушке!" },
+  { id: "galaxy", name: "Космический Облик", emoji: "🌌", price: 5, desc: "Таинственные звезды и сияние!" },
+  { id: "crown", name: "Принцессный Облик", emoji: "👑", price: 8, desc: "Изящная сверкающая корона!" },
+  { id: "gold", name: "Золотой Облик", emoji: "✨", price: 12, desc: "Легендарное золотое напыление!" },
 ];
 
 interface CatRoomProps {

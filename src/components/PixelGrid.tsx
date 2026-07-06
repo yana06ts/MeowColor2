@@ -11,6 +11,7 @@ interface PixelGridProps {
   onUsePowerup: (powerupType: "wand" | "bomb" | "magnifier") => void;
   powerupCounts: { wand: number; bomb: number; magnifier: number };
   onMistake?: () => void;
+  tutorialStep?: number | null;
 }
 
 interface Particle {
@@ -31,6 +32,7 @@ export function PixelGrid({
   onUsePowerup,
   powerupCounts,
   onMistake,
+  tutorialStep = null,
 }: PixelGridProps) {
   const [zoom, setZoom] = useState<number>(100);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -102,7 +104,7 @@ export function PixelGrid({
   };
 
   // Handle core cell coloring logic when user draws on a cell
-  const handleCellAction = (index: number, row: number, col: number) => {
+  const handleCellAction = (index: number, row: number, col: number, isDragSwipe: boolean = false) => {
     const cell = progress[index];
     if (cell.filled) return; // already done
 
@@ -205,10 +207,13 @@ export function PixelGrid({
       onPixelColored(index);
       spawnParticles(row, col, targetColor?.hex || selectedColorHex);
     } else {
-      // Mistake flash
-      triggerErrorFlash(index);
-      if (onMistake) {
-        onMistake();
+      // Mistakes are completely ignored during active swiping/dragging!
+      if (!isDragSwipe) {
+        // Mistake flash
+        triggerErrorFlash(index);
+        if (onMistake) {
+          onMistake();
+        }
       }
     }
   };
@@ -253,7 +258,7 @@ export function PixelGrid({
           if (cell && !cell.filled && cell.number === selectedColorNumber) {
             const r = Math.floor(index / puzzle.width);
             const c = Math.floor(index % puzzle.width);
-            handleCellAction(index, r, c);
+            handleCellAction(index, r, c, true);
           }
         }
       }
@@ -422,6 +427,43 @@ export function PixelGrid({
               height: `${Math.max(260, puzzle.height * 25)}px`,
             }}
           >
+            {/* Tutorial Guiding Hand */}
+            {tutorialStep === 2 && (
+              <>
+                <style>{`
+                  @keyframes guideHandSwipe {
+                    0% {
+                      left: calc(6px + 6 * (100% - 12px) / 16);
+                      top: calc(6px + 1 * (100% - 12px) / 16);
+                    }
+                    50% {
+                      left: calc(6px + 9 * (100% - 12px) / 16);
+                      top: calc(6px + 1 * (100% - 12px) / 16);
+                    }
+                    100% {
+                      left: calc(6px + 6 * (100% - 12px) / 16);
+                      top: calc(6px + 1 * (100% - 12px) / 16);
+                    }
+                  }
+                  .animate-guide-hand {
+                    animation: guideHandSwipe 2.5s ease-in-out infinite;
+                  }
+                `}</style>
+                <div 
+                  className="absolute pointer-events-none z-50 animate-guide-hand flex flex-col items-center"
+                  style={{
+                    width: "25px",
+                    height: "25px",
+                  }}
+                >
+                  <span className="text-3xl filter drop-shadow-lg -mt-4">👇</span>
+                  <div className="bg-rose-500 text-white font-pixel font-bold text-[6px] px-1 py-0.5 rounded-full shadow-md uppercase whitespace-nowrap -mt-1 tracking-tight animate-pulse border border-rose-300">
+                    Веди пальцем! 🖌️
+                  </div>
+                </div>
+              </>
+            )}
+
             {progress.map((cell, idx) => {
               const r = Math.floor(idx / puzzle.width);
               const c = Math.floor(idx % puzzle.width);
@@ -448,13 +490,13 @@ export function PixelGrid({
                   data-pixel-index={idx}
                   onClick={() => {
                     if (toolMode === "draw") {
-                      handleCellAction(idx, r, c);
+                      handleCellAction(idx, r, c, false);
                     }
                   }}
                   onMouseEnter={() => {
                     // Holding dragging paints the coordinates immediately
                     if (toolMode === "draw" && isMouseDown.current) {
-                      handleCellAction(idx, r, c);
+                      handleCellAction(idx, r, c, true);
                     }
                   }}
                   className={`relative aspect-square border-[0.5px] select-none flex items-center justify-center transition-all duration-150 cursor-pointer text-center ${
