@@ -276,7 +276,6 @@ export default function App() {
   const [colorCompletedSplash, setColorCompletedSplash] = useState<
     number | null
   >(null);
-  const [isLevelCelebrating, setIsLevelCelebrating] = useState<boolean>(false);
   const [animateProgressPercent, setAnimateProgressPercent] = useState<number>(0);
   
   // Star particle type and states for progress bar animations
@@ -295,7 +294,6 @@ export default function App() {
   const [menuProgressPercent, setMenuProgressPercent] = useState<number | null>(null);
   const [menuParticles, setMenuParticles] = useState<StarParticle[]>([]);
 
-  const [celebrationText, setCelebrationText] = useState<string>("");
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
   const [seenRoomUnlock, setSeenRoomUnlock] = useState<boolean>(() => {
     return localStorage.getItem("meowcolor_tutorial_seen_room") === "true";
@@ -2889,11 +2887,11 @@ export default function App() {
             {/* Level Complete visual Modal */}
             {/* Level Complete visual Modal */}
             {levelCompleteModal?.active && (
-              <div className="absolute inset-0 z-50 bg-[#07040fd0] backdrop-blur-md flex items-center justify-center p-4">
-                <div className="bg-gradient-to-b from-[#1c122e] via-[#150a24] to-[#0e051a] rounded-3xl p-6 shadow-[0_0_50px_rgba(251,191,36,0.35)] border-4 border-amber-400 max-w-sm w-full text-center relative select-none animate-fade-in text-white overflow-visible">
+              <div className="absolute inset-0 z-50 bg-amber-950/45 backdrop-blur-md flex items-center justify-center p-4">
+                <div className="bg-gradient-to-b from-[#FFFDF6] via-[#FFFBF0] to-[#FFF6DC] rounded-[2.5rem] p-6 shadow-[0_15px_45px_rgba(251,191,36,0.3)] border-4 border-amber-400 max-w-sm w-full text-center relative select-none animate-fade-in text-[#5C3A21] overflow-visible">
                   
                   {/* Decorative glowing backdrops */}
-                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-32 h-32 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
                   
                   <div className="absolute top-2 left-6 text-xl animate-bounce">
                     ✨
@@ -2908,15 +2906,15 @@ export default function App() {
                     💖
                   </div>
 
-                  <div className="w-12 h-12 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-2 border-2 border-amber-200 shadow-lg animate-bounce">
+                  <div className="w-12 h-12 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-2 border-2 border-amber-200 shadow-md animate-bounce">
                     <span className="text-xl">🏆</span>
                   </div>
 
-                  <h2 className="text-[10.5px] font-pixel text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-100 uppercase mb-2 leading-tight tracking-wider animate-pulse">
+                  <h2 className="text-[11.5px] font-pixel text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 uppercase mb-2 leading-tight tracking-wider animate-pulse font-black">
                     ШЕДЕВР ГОТОВ! 🎉
                   </h2>
 
-                  <p className="text-[9.5px] text-amber-200/90 font-semibold leading-relaxed mb-4 font-sans italic px-2">
+                  <p className="text-[10px] text-amber-900 font-semibold leading-relaxed mb-4 font-pixel px-2">
                     «Просто мур-р-р-фектно! Твои лапки сотворили настоящее чудо!» 🐾🎨💖
                   </p>
 
@@ -2925,12 +2923,12 @@ export default function App() {
                     <div className="relative w-44 h-44 mx-auto mb-4 flex items-center justify-center">
                       {/* Rotating halo background lines */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none scale-125 overflow-visible">
-                        <div className="w-44 h-44 rounded-full border-2 border-dashed border-amber-400/20 animate-spin-slow" />
-                        <div className="absolute w-48 h-48 rounded-full border border-double border-orange-400/10 animate-spin-slow [animation-direction:reverse]" />
+                        <div className="w-44 h-44 rounded-full border-2 border-dashed border-amber-400/30 animate-spin-slow" />
+                        <div className="absolute w-48 h-48 rounded-full border border-double border-orange-400/20 animate-spin-slow [animation-direction:reverse]" />
                       </div>
                       
                       {/* Artwork card framed */}
-                      <div className="relative z-10 w-36 h-36 bg-slate-900 rounded-2xl p-2.5 border-4 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)] flex items-center justify-center overflow-hidden">
+                      <div className="relative z-10 w-36 h-36 bg-slate-950 rounded-2xl p-2.5 border-4 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.35)] flex items-center justify-center overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/5 via-rose-500/5 to-transparent pointer-events-none" />
                         <div
                           className="grid gap-[1px]"
@@ -2993,15 +2991,15 @@ export default function App() {
                       : "Супер-Кота";
 
                     return (
-                      <div className="mb-4 bg-slate-900/60 border border-amber-500/30 rounded-2xl p-2.5 flex flex-col gap-1.5 text-left select-none relative overflow-visible">
-                        <div className="flex justify-between items-center text-[7.5px] font-pixel text-amber-200 font-bold uppercase">
+                      <div className="mb-4 bg-amber-500/10 border-2 border-amber-200 rounded-2xl p-2.5 flex flex-col gap-1.5 text-left select-none relative overflow-visible shadow-xs">
+                        <div className="flex justify-between items-center text-[8px] font-pixel text-amber-800 font-bold uppercase">
                           <span className="flex items-center gap-1">🐾 Прогресс главы ({catName}):</span>
-                          <span className="bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded-full text-[7px] font-black">
+                          <span className="bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded-full text-[7.5px] font-black shadow-xs">
                             {completedRegular}/{totalRegular}
                           </span>
                         </div>
                         <div className="relative w-full h-2.5 mt-1">
-                          <div className="w-full bg-slate-950/80 h-full rounded-full border border-amber-500/20 relative flex items-center p-0.5 shadow-inner overflow-hidden">
+                          <div className="w-full bg-amber-100 h-full rounded-full border border-amber-200 relative flex items-center p-0.5 shadow-inner overflow-hidden">
                             <div
                               className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full shadow-2xs"
                               style={{ width: `${animateProgressPercent}%` }}
@@ -3061,7 +3059,7 @@ export default function App() {
                       setSelectedPuzzle(null);
                       SOUNDS.playPop(1.1);
                     }}
-                    className="w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 border-2 border-amber-500 p-3 font-pixel text-[8.5px] text-slate-950 rounded-2xl shadow-[0_0_15px_rgba(245,158,11,0.35)] hover:scale-102 hover:from-amber-300 hover:to-orange-300 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold flex items-center justify-center gap-1"
+                    className="w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 border-2 border-amber-500 p-3 font-pixel text-[9px] text-slate-950 rounded-2xl shadow-[0_4px_12px_rgba(245,158,11,0.3)] hover:scale-102 hover:from-amber-300 hover:to-orange-300 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold flex items-center justify-center gap-1"
                   >
                     🐾 ЗАБРАТЬ НАГРАДУ: +{levelCompleteModal?.yarnEarned} ПРЯЖИ 🧶
                   </button>
