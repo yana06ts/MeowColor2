@@ -277,6 +277,23 @@ export default function App() {
   >(null);
   const [isLevelCelebrating, setIsLevelCelebrating] = useState<boolean>(false);
   const [animateProgressPercent, setAnimateProgressPercent] = useState<number>(0);
+  
+  // Star particle type and states for progress bar animations
+  interface StarParticle {
+    id: number;
+    x: number; // percentage left (from 0 to 100)
+    y: number; // percentage top (relative to height)
+    vx: number;
+    vy: number;
+    scale: number;
+    alpha: number;
+    color: string;
+    char: string;
+  }
+  const [victoryParticles, setVictoryParticles] = useState<StarParticle[]>([]);
+  const [menuProgressPercent, setMenuProgressPercent] = useState<number | null>(null);
+  const [menuParticles, setMenuParticles] = useState<StarParticle[]>([]);
+
   const [celebrationText, setCelebrationText] = useState<string>("");
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
   const [seenRoomUnlock, setSeenRoomUnlock] = useState<boolean>(() => {
@@ -331,6 +348,8 @@ export default function App() {
   const [levelCompleteModal, setLevelCompleteModal] = useState<{
     active: boolean;
     yarnEarned: number;
+    prevPercent?: number;
+    targetPercent?: number;
   } | null>(null);
   const [showSuperCatIntro, setShowSuperCatIntro] = useState<{
     active: boolean;
@@ -347,6 +366,167 @@ export default function App() {
   const showToast = (msg: string) => {
     setToast(msg);
   };
+
+  // Particle tick loop for progress bars
+  useEffect(() => {
+    if (victoryParticles.length === 0 && menuParticles.length === 0) return;
+    const timer = setInterval(() => {
+      if (victoryParticles.length > 0) {
+        setVictoryParticles((prev) =>
+          prev
+            .map((p) => ({
+              ...p,
+              x: p.x + p.vx * 0.4,
+              y: p.y + p.vy * 0.4,
+              vy: p.vy + 0.08, // gravity
+              alpha: p.alpha - 0.04,
+              scale: p.scale * 0.95,
+            }))
+            .filter((p) => p.alpha > 0)
+        );
+      }
+      if (menuParticles.length > 0) {
+        setMenuParticles((prev) =>
+          prev
+            .map((p) => ({
+              ...p,
+              x: p.x + p.vx * 0.4,
+              y: p.y + p.vy * 0.4,
+              vy: p.vy + 0.08, // gravity
+              alpha: p.alpha - 0.04,
+              scale: p.scale * 0.95,
+            }))
+            .filter((p) => p.alpha > 0)
+        );
+      }
+    }, 24);
+    return () => clearInterval(timer);
+  }, [victoryParticles.length, menuParticles.length]);
+
+  const spawnVictoryParticles = (pct: number) => {
+    const chars = ["⭐", "✨", "💫", "🌟", "✨"];
+    const colors = ["#FBBF24", "#F59E0B", "#F87171", "#60A5FA", "#34D399"];
+    const newP: StarParticle[] = [];
+    for (let i = 0; i < 2; i++) {
+      newP.push({
+        id: Math.random() + Date.now(),
+        x: pct,
+        y: 50 + (Math.random() * 40 - 20), // 50% is center of h-2.5 wrapper, spread vertically
+        vx: -(Math.random() * 1.5 + 0.5), // fly backwards
+        vy: Math.random() * 3 - 1.5,
+        scale: Math.random() * 0.7 + 0.5,
+        alpha: 1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        char: chars[Math.floor(Math.random() * chars.length)],
+      });
+    }
+    setVictoryParticles((prev) => [...prev, ...newP].slice(-40));
+  };
+
+  const spawnMenuParticles = (pct: number) => {
+    const chars = ["⭐", "✨", "💫", "🌟", "✨"];
+    const colors = ["#FBBF24", "#F59E0B", "#F87171", "#60A5FA", "#34D399"];
+    const newP: StarParticle[] = [];
+    for (let i = 0; i < 2; i++) {
+      newP.push({
+        id: Math.random() + Date.now(),
+        x: pct,
+        y: 50 + (Math.random() * 40 - 20), // 50% is center of h-3.5 wrapper, spread vertically
+        vx: -(Math.random() * 1.5 + 0.5), // fly backwards
+        vy: Math.random() * 3 - 1.5,
+        scale: Math.random() * 0.7 + 0.5,
+        alpha: 1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        char: chars[Math.floor(Math.random() * chars.length)],
+      });
+    }
+    setMenuParticles((prev) => [...prev, ...newP].slice(-40));
+  };
+
+  // Victory screen progress bar smooth animation with star particles
+  useEffect(() => {
+    if (levelCompleteModal?.active && levelCompleteModal.prevPercent !== undefined && levelCompleteModal.targetPercent !== undefined) {
+      const start = levelCompleteModal.prevPercent;
+      const target = levelCompleteModal.targetPercent;
+      
+      setAnimateProgressPercent(start);
+
+      const delayTimer = setTimeout(() => {
+        let current = start;
+        const totalSteps = 60; // 60 steps for animation
+        const stepTime = 20; // 20ms per step (~1.2 seconds total duration)
+        const stepIncrement = (target - start) / totalSteps;
+        let step = 0;
+
+        const interval = setInterval(() => {
+          step++;
+          current += stepIncrement;
+          if (step >= totalSteps || current >= target) {
+            current = target;
+            clearInterval(interval);
+          }
+          setAnimateProgressPercent(current);
+          
+          if (target > start) {
+            spawnVictoryParticles(current);
+          }
+        }, stepTime);
+
+        return () => clearInterval(interval);
+      }, 600); // Wait 600ms for modal to mount and look comfy
+
+      return () => clearTimeout(delayTimer);
+    }
+  }, [levelCompleteModal?.active, levelCompleteModal?.prevPercent, levelCompleteModal?.targetPercent]);
+
+  // Main menu progress bar smooth animation with star particles
+  useEffect(() => {
+    if (activeTab === "levels" && !selectedPuzzle && menuProgressPercent !== null) {
+      // Calculate target percent for the current chapter
+      const currentLvl = LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
+      if (!currentLvl) return;
+      const cycleLevels = LEVEL_SEQUENCE.filter(
+        (item) => item.cycleNumber === currentLvl.cycleNumber,
+      );
+      const regularLevels = cycleLevels.filter((item) => !item.isSuper);
+      const completedRegular = regularLevels.filter((item) =>
+        completedPuzzles.includes(item.puzzleId)
+      ).length;
+      const totalRegular = regularLevels.length || 1;
+      const targetPercent = Math.min(100, Math.floor((completedRegular / totalRegular) * 100));
+
+      if (menuProgressPercent < targetPercent) {
+        // Wait 400ms after menu mounts/transitions before starting animation
+        const delayTimer = setTimeout(() => {
+          let current = menuProgressPercent;
+          const totalSteps = 60;
+          const stepTime = 20; // 1.2s total
+          const stepIncrement = (targetPercent - menuProgressPercent) / totalSteps;
+          let step = 0;
+
+          const interval = setInterval(() => {
+            step++;
+            current += stepIncrement;
+            if (step >= totalSteps || current >= targetPercent) {
+              current = targetPercent;
+              clearInterval(interval);
+              // reset back to null so that any future changes can use calculated percent
+              setMenuProgressPercent(null);
+            } else {
+              setMenuProgressPercent(current);
+            }
+            spawnMenuParticles(current);
+          }, stepTime);
+
+          return () => clearInterval(interval);
+        }, 400);
+
+        return () => clearTimeout(delayTimer);
+      } else {
+        setMenuProgressPercent(null);
+      }
+    }
+  }, [activeTab, selectedPuzzle, menuProgressPercent, completedPuzzles, currentLevelIndex]);
 
   useEffect(() => {
     if (toast) {
@@ -788,12 +968,9 @@ export default function App() {
         setLevelCompleteModal({
           active: true,
           yarnEarned: finalReward,
+          prevPercent,
+          targetPercent,
         });
-
-        // Trigger visual progress fill-up animation shortly after modal mounts
-        setTimeout(() => {
-          setAnimateProgressPercent(targetPercent);
-        }, 300);
       }, 2500);
     }
   };
@@ -1528,8 +1705,10 @@ export default function App() {
                           Math.floor((completedRegular / totalRegular) * 100),
                         );
 
+                        const displayPercent = menuProgressPercent !== null ? menuProgressPercent : percent;
+
                         return (
-                          <div className="mx-4 mt-4 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-50 border-2 border-amber-200 rounded-3xl p-3.5 flex flex-col gap-2 shrink-0 select-none shadow-sm">
+                          <div className="mx-4 mt-4 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-50 border-2 border-amber-200 rounded-3xl p-3.5 flex flex-col gap-1.5 shrink-0 select-none shadow-sm relative overflow-visible">
                             <div className="flex justify-between items-center text-[9.5px] font-pixel text-amber-900 font-black uppercase">
                               <span className="flex items-center gap-1">
                                 👑 Прогресс Главы:{" "}
@@ -1539,20 +1718,40 @@ export default function App() {
                                 {completedRegular}/{totalRegular}
                               </span>
                             </div>
-                            <div className="w-full bg-amber-200/40 h-3.5 rounded-full overflow-hidden border border-amber-300/40 shadow-inner relative flex items-center p-0.5">
-                              <div
-                                className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full transition-all duration-700 shadow-md relative"
-                                style={{ width: `${percent}%` }}
-                              >
-                                <div className="absolute right-1 top-0.5 w-1 h-1 bg-white/60 rounded-full" />
+                            <div className="relative w-full h-3.5 mt-1">
+                              <div className="w-full bg-amber-200/40 h-full rounded-full border border-amber-300/40 shadow-inner overflow-hidden p-0.5">
+                                <div
+                                  className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full shadow-md relative animate-pulse-slow"
+                                  style={{ width: `${displayPercent}%` }}
+                                >
+                                  <div className="absolute right-1 top-0.5 w-1 h-1 bg-white/60 rounded-full" />
+                                </div>
                               </div>
                               {/* Sparkling floating star inside bar */}
                               <div
-                                className="absolute text-xs pointer-events-none transform -translate-y-1/2 top-1/2 transition-all duration-700"
-                                style={{ left: `calc(${percent}% - 6px)` }}
+                                className="absolute text-xs pointer-events-none transform -translate-y-1/2 top-1/2 transition-all duration-75"
+                                style={{ left: `calc(${displayPercent}% - 6px)` }}
                               >
                                 ⭐
                               </div>
+
+                              {/* Sparkling particles when animating */}
+                              {menuParticles.map((p) => (
+                                <span
+                                  key={p.id}
+                                  className="absolute pointer-events-none select-none text-xs"
+                                  style={{
+                                    left: `calc(${p.x}% - 6px)`,
+                                    top: `calc(${p.y}% - 6px)`,
+                                    transform: `scale(${p.scale})`,
+                                    opacity: p.alpha,
+                                    zIndex: 50,
+                                    textShadow: `0 0 4px ${p.color}`,
+                                  }}
+                                >
+                                  {p.char}
+                                </span>
+                              ))}
                             </div>
                           </div>
                         );
@@ -2780,18 +2979,46 @@ export default function App() {
                       : "Супер-Кота";
 
                     return (
-                      <div className="mb-4 bg-gradient-to-r from-amber-50/70 to-orange-50/70 border border-amber-100 rounded-2xl p-2.5 flex flex-col gap-1.5 text-left select-none shadow-3xs">
+                      <div className="mb-4 bg-gradient-to-r from-amber-50/70 to-orange-50/70 border border-amber-100 rounded-2xl p-2.5 flex flex-col gap-1.5 text-left select-none shadow-3xs relative overflow-visible">
                         <div className="flex justify-between items-center text-[8px] font-pixel text-amber-950 font-bold uppercase">
                           <span className="flex items-center gap-1">🐾 Прогресс главы ({catName}):</span>
                           <span className="bg-amber-200 px-1.5 py-0.5 rounded-full text-amber-950 text-[7px]">
                             {completedRegular}/{totalRegular}
                           </span>
                         </div>
-                        <div className="w-full bg-amber-100/40 h-2.5 rounded-full overflow-hidden border border-amber-200/40 relative flex items-center p-0.5 shadow-inner">
+                        <div className="relative w-full h-2.5 mt-1">
+                          <div className="w-full bg-amber-100/40 h-full rounded-full border border-amber-200/40 relative flex items-center p-0.5 shadow-inner overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full shadow-2xs"
+                              style={{ width: `${animateProgressPercent}%` }}
+                            />
+                          </div>
+
+                          {/* Floating star tip */}
                           <div
-                            className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full transition-all duration-[1200ms] ease-out shadow-2xs"
-                            style={{ width: `${animateProgressPercent}%` }}
-                          />
+                            className="absolute text-[10px] pointer-events-none transform -translate-y-1/2 top-1/2 transition-all duration-75"
+                            style={{ left: `calc(${animateProgressPercent}% - 5px)` }}
+                          >
+                            ⭐
+                          </div>
+
+                          {/* RENDER VICTORY PARTICLES HERE */}
+                          {victoryParticles.map((p) => (
+                            <span
+                              key={p.id}
+                              className="absolute pointer-events-none select-none text-xs"
+                              style={{
+                                left: `calc(${p.x}% - 6px)`,
+                                top: `calc(${p.y}% - 6px)`,
+                                transform: `scale(${p.scale})`,
+                                opacity: p.alpha,
+                                zIndex: 50,
+                                textShadow: `0 0 4px ${p.color}`,
+                              }}
+                            >
+                              {p.char}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     );
@@ -2810,6 +3037,10 @@ export default function App() {
                         "meowcolor_level_index",
                         nextIndex.toString(),
                       );
+
+                      if (levelCompleteModal?.prevPercent !== undefined) {
+                        setMenuProgressPercent(levelCompleteModal.prevPercent);
+                      }
 
                       // Close complete modal and return to main levels list/menu
                       setLevelCompleteModal(null);
