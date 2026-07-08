@@ -2928,7 +2928,7 @@ export default function App() {
                       </div>
                       
                       {/* Artwork card framed */}
-                      <div className="relative z-10 w-36 h-36 bg-slate-950 rounded-2xl p-2.5 border-4 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.35)] flex items-center justify-center overflow-hidden">
+                      <div className="relative z-10 w-36 h-36 bg-white rounded-2xl p-2.5 border-4 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.35)] flex items-center justify-center overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/5 via-rose-500/5 to-transparent pointer-events-none" />
                         <div
                           className="grid gap-[1px]"
