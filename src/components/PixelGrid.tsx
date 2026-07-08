@@ -78,7 +78,8 @@ export function PixelGrid({
 
   // Magnifier center and highlight logic
   const handleUseMagnifier = () => {
-    if (powerupCounts.magnifier <= 0) {
+    const isMagnifierInfinite = levelNumber === 7;
+    if (!isMagnifierInfinite && powerupCounts.magnifier <= 0) {
       showLockedTooltip("У Вас закончились лупы! Купите их в Лавке 🛍️");
       return;
     }
@@ -127,7 +128,9 @@ export function PixelGrid({
       setErrorCell((curr) => (curr === targetIdx ? null : curr));
     }, 1500);
 
-    onUsePowerup("magnifier");
+    if (!isMagnifierInfinite) {
+      onUsePowerup("magnifier");
+    }
     SOUNDS.playSuccessColor();
   };
 
@@ -213,12 +216,15 @@ export function PixelGrid({
 
     // 1. Wand Powerup Active?
     if (activeSpecialTool === "wand") {
-      if (powerupCounts.wand <= 0) {
+      const isWandInfinite = levelNumber === 3;
+      if (!isWandInfinite && powerupCounts.wand <= 0) {
         SOUNDS.playError();
         return;
       }
-      // Deduct wand powerup
-      onUsePowerup("wand");
+      // Deduct wand powerup only if not infinite
+      if (!isWandInfinite) {
+        onUsePowerup("wand");
+      }
       SOUNDS.playSuccessColor();
       
       // Flood fill identical adjacent numbers
@@ -262,11 +268,14 @@ export function PixelGrid({
 
     // 2. Bomb Powerup Active?
     if (activeSpecialTool === "bomb") {
-      if (powerupCounts.bomb <= 0) {
+      const isBombInfinite = levelNumber === 5;
+      if (!isBombInfinite && powerupCounts.bomb <= 0) {
         SOUNDS.playError();
         return;
       }
-      onUsePowerup("bomb");
+      if (!isBombInfinite) {
+        onUsePowerup("bomb");
+      }
       SOUNDS.playSuccessColor();
 
       // Explode a 3x3 grid centered at row, col. Color all matching cells
@@ -646,6 +655,7 @@ export function PixelGrid({
         {/* Booster 1: Wand */}
         {(() => {
           const isUnlocked = levelNumber >= 3;
+          const isWandInfinite = levelNumber === 3;
           const isActive = activeSpecialTool === "wand";
           return (
             <div className="relative">
@@ -656,7 +666,7 @@ export function PixelGrid({
                     showLockedTooltip("Волшебная палочка открывается на 3 цене! 🔒");
                     return;
                   }
-                  if (powerupCounts.wand <= 0) {
+                  if (!isWandInfinite && powerupCounts.wand <= 0) {
                     showLockedTooltip("Купите волшебные палочки в Лавке! 🛍️");
                     return;
                   }
@@ -680,8 +690,8 @@ export function PixelGrid({
               >
                 <span className="text-lg">🪄</span>
                 {isUnlocked && (
-                  <span className="absolute -bottom-1 -right-1 bg-rose-500 text-white font-pixel text-[7px] px-1.5 py-0.5 rounded-full border border-white font-bold leading-none scale-90">
-                    {powerupCounts.wand}
+                  <span className={`absolute -bottom-1 -right-1 text-white font-pixel px-1.5 py-0.5 rounded-full border border-white font-bold leading-none scale-90 ${isWandInfinite ? "bg-emerald-500 text-[9px]" : "bg-rose-500 text-[7px]"}`}>
+                    {isWandInfinite ? "∞" : powerupCounts.wand}
                   </span>
                 )}
                 {!isUnlocked && (
@@ -706,6 +716,7 @@ export function PixelGrid({
         {/* Booster 2: Bomb */}
         {(() => {
           const isUnlocked = levelNumber >= 5;
+          const isBombInfinite = levelNumber === 5;
           const isActive = activeSpecialTool === "bomb";
           return (
             <div className="relative">
@@ -716,7 +727,7 @@ export function PixelGrid({
                     showLockedTooltip("Кошачья бомбочка открывается на 5 уровне! 🔒");
                     return;
                   }
-                  if (powerupCounts.bomb <= 0) {
+                  if (!isBombInfinite && powerupCounts.bomb <= 0) {
                     showLockedTooltip("Купите бомбочки в Лавке! 🛍️");
                     return;
                   }
@@ -740,8 +751,8 @@ export function PixelGrid({
               >
                 <span className="text-lg">💣</span>
                 {isUnlocked && (
-                  <span className="absolute -bottom-1 -right-1 bg-rose-500 text-white font-pixel text-[7px] px-1.5 py-0.5 rounded-full border border-white font-bold leading-none scale-90">
-                    {powerupCounts.bomb}
+                  <span className={`absolute -bottom-1 -right-1 text-white font-pixel px-1.5 py-0.5 rounded-full border border-white font-bold leading-none scale-90 ${isBombInfinite ? "bg-emerald-500 text-[9px]" : "bg-rose-500 text-[7px]"}`}>
+                    {isBombInfinite ? "∞" : powerupCounts.bomb}
                   </span>
                 )}
                 {!isUnlocked && (
@@ -766,6 +777,7 @@ export function PixelGrid({
         {/* Booster 3: Magnifier */}
         {(() => {
           const isUnlocked = levelNumber >= 7;
+          const isMagnifierInfinite = levelNumber === 7;
           return (
             <div className="relative">
               <button
@@ -791,8 +803,8 @@ export function PixelGrid({
               >
                 <span className="text-lg">🔍</span>
                 {isUnlocked && (
-                  <span className="absolute -bottom-1 -right-1 bg-rose-500 text-white font-pixel text-[7px] px-1.5 py-0.5 rounded-full border border-white font-bold leading-none scale-90">
-                    {powerupCounts.magnifier}
+                  <span className={`absolute -bottom-1 -right-1 text-white font-pixel px-1.5 py-0.5 rounded-full border border-white font-bold leading-none scale-90 ${isMagnifierInfinite ? "bg-emerald-500 text-[9px]" : "bg-rose-500 text-[7px]"}`}>
+                    {isMagnifierInfinite ? "∞" : powerupCounts.magnifier}
                   </span>
                 )}
                 {!isUnlocked && (

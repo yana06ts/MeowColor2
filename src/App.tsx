@@ -276,6 +276,7 @@ export default function App() {
     number | null
   >(null);
   const [isLevelCelebrating, setIsLevelCelebrating] = useState<boolean>(false);
+  const [animateProgressPercent, setAnimateProgressPercent] = useState<number>(0);
   const [celebrationText, setCelebrationText] = useState<string>("");
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
   const [seenRoomUnlock, setSeenRoomUnlock] = useState<boolean>(() => {
@@ -756,10 +757,43 @@ export default function App() {
       // Open reward visual dialog after 2.5 seconds
       setTimeout(() => {
         setIsLevelCelebrating(false);
+
+        // Pre-calculate chapter progress percents for victory screen animation
+        const currentLvl = LEVEL_SEQUENCE.find(item => item.puzzleId === puzzleId) || LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
+        let prevPercent = 0;
+        let targetPercent = 0;
+        if (currentLvl) {
+          const cycleLevels = LEVEL_SEQUENCE.filter(
+            (item) => item.cycleNumber === currentLvl.cycleNumber,
+          );
+          const regularLevels = cycleLevels.filter(
+            (item) => !item.isSuper,
+          );
+          const totalRegular = regularLevels.length || 1;
+
+          const completedRegularExcludingCurrent = regularLevels.filter((item) =>
+            item.puzzleId !== puzzleId && completedPuzzles.includes(item.puzzleId)
+          ).length;
+
+          const completedRegularIncludingCurrent = regularLevels.filter((item) =>
+            item.puzzleId === puzzleId || completedPuzzles.includes(item.puzzleId)
+          ).length;
+
+          prevPercent = Math.max(0, Math.min(100, Math.floor((completedRegularExcludingCurrent / totalRegular) * 100)));
+          targetPercent = Math.min(100, Math.floor((completedRegularIncludingCurrent / totalRegular) * 100));
+        }
+
+        setAnimateProgressPercent(prevPercent);
+
         setLevelCompleteModal({
           active: true,
           yarnEarned: finalReward,
         });
+
+        // Trigger visual progress fill-up animation shortly after modal mounts
+        setTimeout(() => {
+          setAnimateProgressPercent(targetPercent);
+        }, 300);
       }, 2500);
     }
   };
@@ -2731,10 +2765,6 @@ export default function App() {
                       completedPuzzles.includes(item.puzzleId) || item.puzzleId === selectedPuzzle.id
                     ).length;
                     const totalRegular = regularLevels.length;
-                    const percent = Math.min(
-                      100,
-                      Math.floor((completedRegular / totalRegular) * 100),
-                    );
 
                     // Super cat template info
                     const superCatLvl = cycleLevels.find(
@@ -2759,8 +2789,8 @@ export default function App() {
                         </div>
                         <div className="w-full bg-amber-100/40 h-2.5 rounded-full overflow-hidden border border-amber-200/40 relative flex items-center p-0.5 shadow-inner">
                           <div
-                            className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full transition-all duration-700 shadow-2xs"
-                            style={{ width: `${percent}%` }}
+                            className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full transition-all duration-[1200ms] ease-out shadow-2xs"
+                            style={{ width: `${animateProgressPercent}%` }}
                           />
                         </div>
                       </div>
