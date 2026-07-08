@@ -918,61 +918,44 @@ export default function App() {
       // Clear partial progress state storage
       localStorage.removeItem(`meowcolor_progress_${puzzleId}`);
 
-      // Defer rewards and trigger beautiful visual celebration banner!
-      setIsLevelCelebrating(true);
-      const PRAISES = [
-        "Мур-р! Твои лапки творят настоящие шедевры! 🐾",
-        "Потрясающая палитра! Котики в абсолютном восторге! 🥰",
-        "Ты — настоящий чудо-художник! Мяу! ✨",
-        "Мур-р-рсимальная красота! Шедевр завершен! 🌸",
-        "Твои лапки заслужили мисочку сливок! Кот великолепен! 🥛🐱",
-      ];
-      const randomPraise = PRAISES[Math.floor(Math.random() * PRAISES.length)];
-      setCelebrationText(randomPraise);
-
       SOUNDS.playCompleteLevel();
       setTimeout(() => {
         SOUNDS.playMeow();
       }, 500);
 
-      // Open reward visual dialog after 2.5 seconds
-      setTimeout(() => {
-        setIsLevelCelebrating(false);
+      // Pre-calculate chapter progress percents for victory screen animation
+      const levelSeqItem = LEVEL_SEQUENCE.find(item => item.puzzleId === puzzleId) || LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
+      let prevPercent = 0;
+      let targetPercent = 0;
+      if (levelSeqItem) {
+        const cycleLevels = LEVEL_SEQUENCE.filter(
+          (item) => item.cycleNumber === levelSeqItem.cycleNumber,
+        );
+        const regularLevels = cycleLevels.filter(
+          (item) => !item.isSuper,
+        );
+        const totalRegular = regularLevels.length || 1;
 
-        // Pre-calculate chapter progress percents for victory screen animation
-        const currentLvl = LEVEL_SEQUENCE.find(item => item.puzzleId === puzzleId) || LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
-        let prevPercent = 0;
-        let targetPercent = 0;
-        if (currentLvl) {
-          const cycleLevels = LEVEL_SEQUENCE.filter(
-            (item) => item.cycleNumber === currentLvl.cycleNumber,
-          );
-          const regularLevels = cycleLevels.filter(
-            (item) => !item.isSuper,
-          );
-          const totalRegular = regularLevels.length || 1;
+        const completedRegularExcludingCurrent = regularLevels.filter((item) =>
+          item.puzzleId !== puzzleId && completedPuzzles.includes(item.puzzleId)
+        ).length;
 
-          const completedRegularExcludingCurrent = regularLevels.filter((item) =>
-            item.puzzleId !== puzzleId && completedPuzzles.includes(item.puzzleId)
-          ).length;
+        const completedRegularIncludingCurrent = regularLevels.filter((item) =>
+          item.puzzleId === puzzleId || completedPuzzles.includes(item.puzzleId)
+        ).length;
 
-          const completedRegularIncludingCurrent = regularLevels.filter((item) =>
-            item.puzzleId === puzzleId || completedPuzzles.includes(item.puzzleId)
-          ).length;
+        prevPercent = Math.max(0, Math.min(100, Math.floor((completedRegularExcludingCurrent / totalRegular) * 100)));
+        targetPercent = Math.min(100, Math.floor((completedRegularIncludingCurrent / totalRegular) * 100));
+      }
 
-          prevPercent = Math.max(0, Math.min(100, Math.floor((completedRegularExcludingCurrent / totalRegular) * 100)));
-          targetPercent = Math.min(100, Math.floor((completedRegularIncludingCurrent / totalRegular) * 100));
-        }
+      setAnimateProgressPercent(prevPercent);
 
-        setAnimateProgressPercent(prevPercent);
-
-        setLevelCompleteModal({
-          active: true,
-          yarnEarned: finalReward,
-          prevPercent,
-          targetPercent,
-        });
-      }, 2500);
+      setLevelCompleteModal({
+        active: true,
+        yarnEarned: finalReward,
+        prevPercent,
+        targetPercent,
+      });
     }
   };
 
@@ -1529,41 +1512,7 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* Celebration Overlay */}
-                    {isLevelCelebrating && (
-                      <div className="absolute inset-0 z-50 bg-black/75 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center animate-fade-in pointer-events-auto">
-                        <div className="bg-[#FFFDF6] border-4 border-amber-400 p-5 rounded-[2.5rem] shadow-2xl max-w-sm w-full relative overflow-hidden animate-scale-up select-none">
-                          
-                          {/* Top sparkle indicators */}
-                          <div className="absolute top-2 left-6 text-lg animate-pulse">✨</div>
-                          <div className="absolute top-4 right-8 text-lg animate-ping">✨</div>
 
-                          {/* Beautiful Gilded Golden Frame of victory_cat_artist */}
-                          <div className="relative mx-auto w-48 h-36 mb-4 rounded-2xl overflow-hidden border-4 border-amber-300 shadow-md">
-                            <img 
-                              src={victoryCatImg} 
-                              alt="Victory Cat Artist" 
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#5C3A21]/30 to-transparent pointer-events-none" />
-                          </div>
-
-                          <h2 className="text-[10.5px] font-pixel text-[#5C3A21] uppercase tracking-wide font-black leading-tight">
-                            🎨 ШЕДЕВР ЗАВЕРШЕН! 🎉
-                          </h2>
-                          
-                          <p className="text-[9px] text-[#8C6141] font-semibold font-pixel leading-relaxed mt-2.5 px-2">
-                            {celebrationText}
-                          </p>
-
-                          {/* Cute tiny decorative brush */}
-                          <div className="text-center text-xs mt-3.5 animate-bounce">
-                            🎨🐾🐾✨
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Coloring tutorial bubble */}
                     {tutorialStep !== null && (
