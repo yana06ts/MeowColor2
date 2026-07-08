@@ -222,7 +222,7 @@ export function PixelGrid({
     // 1. Wand Powerup Active?
     if (activeSpecialTool === "wand") {
       if (cell.number !== selectedColorNumber) {
-        showLockedTooltip("🐾 Бустер применяется только на выбранный цвет!");
+        SOUNDS.playError();
         return;
       }
       const isWandInfinite = levelNumber === 3;
@@ -278,7 +278,7 @@ export function PixelGrid({
     // 2. Bomb Powerup Active?
     if (activeSpecialTool === "bomb") {
       if (cell.number !== selectedColorNumber) {
-        showLockedTooltip("🐾 Бустер применяется только на выбранный цвет!");
+        SOUNDS.playError();
         return;
       }
       const isBombInfinite = levelNumber === 5;
