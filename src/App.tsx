@@ -146,27 +146,112 @@ export default function App() {
   };
 
   // 1. Core user states
-  const [completedPuzzles, setCompletedPuzzles] = useState<string[]>([]);
-  const [yarnCount, setYarnCount] = useState<number>(0);
-  const [powerups, setPowerups] = useState({ wand: 3, bomb: 3, magnifier: 3 });
-  const [customPuzzles, setCustomPuzzles] = useState<PuzzleTemplate[]>([]);
+  const [completedPuzzles, setCompletedPuzzles] = useState<string[]>(() => {
+    const saved = localStorage.getItem("meowcolor_completed");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+  const [yarnCount, setYarnCount] = useState<number>(() => {
+    const saved = localStorage.getItem("meowcolor_yarn");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [powerups, setPowerups] = useState<{ wand: number; bomb: number; magnifier: number }>(() => {
+    const saved = localStorage.getItem("meowcolor_powerups");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return { wand: 3, bomb: 3, magnifier: 3 };
+  });
+  const [customPuzzles, setCustomPuzzles] = useState<PuzzleTemplate[]>(() => {
+    const saved = localStorage.getItem("meowcolor_custom_puzzles");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
 
   // Premium progress/reward states
-  const [goldYarnCount, setGoldYarnCount] = useState<number>(0);
-  const [gachaTickets, setGachaTickets] = useState<number>(0);
-  const [catLevels, setCatLevels] = useState<Record<string, number>>({});
-  const [equippedSkins, setEquippedSkins] = useState<Record<string, string>>(
-    {},
-  );
-  const [unlockedSkins, setUnlockedSkins] = useState<string[]>([]);
-  const [claimedAchievements, setClaimedAchievements] = useState<string[]>([]);
-  const [gachaUnlockedCats, setGachaUnlockedCats] = useState<string[]>([]);
-  const [catDuplicates, setCatDuplicates] = useState<Record<string, number>>(
-    {},
-  );
-  const [unlockedGachaPuzzleIds, setUnlockedGachaPuzzleIds] = useState<
-    string[]
-  >([]);
+  const [goldYarnCount, setGoldYarnCount] = useState<number>(() => {
+    const saved = localStorage.getItem("meowcolor_gold_yarn");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [gachaTickets, setGachaTickets] = useState<number>(() => {
+    const saved = localStorage.getItem("meowcolor_gacha_tickets");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [catLevels, setCatLevels] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem("meowcolor_cat_levels");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {};
+  });
+  const [equippedSkins, setEquippedSkins] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem("meowcolor_equipped_skins");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {};
+  });
+  const [unlockedSkins, setUnlockedSkins] = useState<string[]>(() => {
+    const saved = localStorage.getItem("meowcolor_unlocked_skins");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [claimedAchievements, setClaimedAchievements] = useState<string[]>(() => {
+    const saved = localStorage.getItem("meowcolor_claimed_achievements");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [gachaUnlockedCats, setGachaUnlockedCats] = useState<string[]>(() => {
+    const saved = localStorage.getItem("meowcolor_gacha_unlocked");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [catDuplicates, setCatDuplicates] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem("meowcolor_cat_duplicates");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {};
+  });
+  const [unlockedGachaPuzzleIds, setUnlockedGachaPuzzleIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem("meowcolor_unlocked_gacha_puzzles");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
 
   // Linear Level progression states
   const [currentLevelIndex, setCurrentLevelIndex] = useState<number>(() => {
@@ -205,6 +290,25 @@ export default function App() {
   const [seenGachaUnlock, setSeenGachaUnlock] = useState<boolean>(() => {
     return localStorage.getItem("meowcolor_tutorial_seen_gacha") === "true";
   });
+
+  const isAchievementsLocked = completedPuzzles.length < 5; // Opens on level 6 (after 5 levels completed)
+  const isShopLocked = completedPuzzles.length < 7; // Opens on level 8 (after 7 levels completed)
+  const isGachaLocked = completedPuzzles.length < 9; // Opens on level 10 (after 9 levels completed)
+  const isRoomLocked = completedPuzzles.length < 4; // Opens on level 5 (after 4 levels completed)
+
+  // Determine if a tab has a newly unlocked tutorial active
+  const activeUnlockTutorialTab: "room" | "achievements" | "shop" | "gacha" | null = (() => {
+    if (!isRoomLocked && !seenRoomUnlock) {
+      return "room";
+    } else if (!isAchievementsLocked && !seenAchievementsUnlock) {
+      return "achievements";
+    } else if (!isShopLocked && !seenShopUnlock) {
+      return "shop";
+    } else if (!isGachaLocked && !seenGachaUnlock) {
+      return "gacha";
+    }
+    return null;
+  })();
   const [houseTutorialStep, setHouseTutorialStep] = useState<number | null>(
     null,
   );
@@ -488,6 +592,12 @@ export default function App() {
 
   // Select puzzle and resume progress or start fresh
   const handleSelectPuzzle = (puzzle: PuzzleTemplate) => {
+    if (activeUnlockTutorialTab) {
+      SOUNDS.playError();
+      showToast("Посмотри новую открытую вкладку сначала! 🐾");
+      return;
+    }
+
     if (menuLives <= 0) {
       setShowOutOfLivesModal(true);
       SOUNDS.playError();
@@ -773,7 +883,8 @@ export default function App() {
 
   // Auto-start first puzzle if tutorial is not completed yet
   useEffect(() => {
-    if (gameStarted && !selectedPuzzle && completedPuzzles.length === 0) {
+    const isTutorialDone = localStorage.getItem("meowcolor_tutorial_coloring") === "completed";
+    if (gameStarted && !selectedPuzzle && completedPuzzles.length === 0 && !isTutorialDone) {
       const firstLvl = LEVEL_SEQUENCE[0];
       const firstPuzzle = allAvailablePuzzles.find(
         (p) => p.id === firstLvl.puzzleId,
@@ -785,13 +896,14 @@ export default function App() {
     }
   }, [gameStarted, selectedPuzzle, completedPuzzles, allAvailablePuzzles]);
 
-  const isAchievementsLocked = completedPuzzles.length < 5; // Opens on level 6 (after 5 levels completed)
-  const isShopLocked = completedPuzzles.length < 7; // Opens on level 8 (after 7 levels completed)
-  const isGachaLocked = completedPuzzles.length < 9; // Opens on level 10 (after 9 levels completed)
-  const isRoomLocked = completedPuzzles.length < 4; // Opens on level 5 (after 4 levels completed)
-
   const handleTabClick = (tab: "achievements" | "shop" | "levels" | "gacha" | "room") => {
     if (selectedPuzzle) return;
+
+    if (activeUnlockTutorialTab && tab !== activeUnlockTutorialTab) {
+      SOUNDS.playError();
+      showToast("Тебе нужно сначала посмотреть новую открытую вкладку! 👉");
+      return;
+    }
 
     if (houseTutorialStep !== null) {
       SOUNDS.playError();
@@ -2144,6 +2256,7 @@ export default function App() {
               gachaUnlockedCats.length > 0 &&
               activeTab !== "room" &&
               !selectedPuzzle &&
+              !activeUnlockTutorialTab &&
               !localStorage.getItem("meowcolor_tutorial_house") && (
                 <div className="absolute inset-x-0 top-0 bottom-14 bg-slate-900/40 z-25 pointer-events-none flex flex-col justify-end">
                   <div className="bg-[#FFF6E5] border-2 border-amber-300 text-amber-950 p-3.5 rounded-2xl shadow-2xl mx-4 mb-3 pointer-events-auto text-center flex flex-col gap-1.5 select-none relative animate-fade-in">
@@ -2167,6 +2280,80 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+            {/* Newly Unlocked Tab Tutorial Overlay */}
+            {activeUnlockTutorialTab && !selectedPuzzle && (
+              <div className="absolute inset-x-0 top-0 bottom-14 bg-slate-950/60 z-45 flex flex-col justify-end">
+                {/* Tutorial Dialog Box */}
+                <div className="bg-[#FFF6E5] border-4 border-amber-400 text-slate-850 p-5 rounded-3xl shadow-2xl mx-4 mb-5 text-center flex flex-col gap-2 select-none relative animate-scale-in">
+                  {activeUnlockTutorialTab === "room" && (
+                    <>
+                      <span className="text-[11px] font-pixel text-amber-800 uppercase font-bold tracking-wider">
+                        🏠 ОТКРЫТ ДОМИК КОТИКОВ! 🐾
+                      </span>
+                      <p className="text-[11px] font-medium text-slate-800 leading-relaxed">
+                        Ура! Тебе открылся Уютный Домик Котиков! Здесь живут твои пушистые друзья. Зайди в домик, чтобы погладить их, покормить и обустроить комнаты мебелью! 🥰🏠
+                      </p>
+                      <div className="absolute -bottom-2 right-[10%] w-4 h-4 bg-[#FFF6E5] border-r-4 border-b-4 border-amber-400 rotate-45" />
+                    </>
+                  )}
+
+                  {activeUnlockTutorialTab === "achievements" && (
+                    <>
+                      <span className="text-[11px] font-pixel text-amber-800 uppercase font-bold tracking-wider">
+                        🏆 ОТКРЫТЫ ДОСТИЖЕНИЯ! 🎖️
+                      </span>
+                      <p className="text-[11px] font-medium text-slate-800 leading-relaxed">
+                        Потрясающе! Тебе открылась вкладка Достижений! Ты проделал отличную работу. Зайди туда прямо сейчас, чтобы забрать заработанные награды и ценные купоны! 🎁✨
+                      </p>
+                      <div className="absolute -bottom-2 left-[10%] w-4 h-4 bg-[#FFF6E5] border-r-4 border-b-4 border-amber-400 rotate-45" />
+                    </>
+                  )}
+
+                  {activeUnlockTutorialTab === "shop" && (
+                    <>
+                      <span className="text-[11px] font-pixel text-amber-800 uppercase font-bold tracking-wider">
+                        🛍️ ОТКРЫТА ЛАВКА БУСТЕРОВ! ✨
+                      </span>
+                      <p className="text-[11px] font-medium text-slate-800 leading-relaxed">
+                        Отличные новости! Лавка бустеров и декораций теперь доступна. Здесь ты сможешь покупать ценные подсказки и уникальные украшения для своего домика! Загляни внутрь! 🛍️🎀
+                      </p>
+                      <div className="absolute -bottom-2 left-[30%] w-4 h-4 bg-[#FFF6E5] border-r-4 border-b-4 border-amber-400 rotate-45" />
+                    </>
+                  )}
+
+                  {activeUnlockTutorialTab === "gacha" && (
+                    <>
+                      <span className="text-[11px] font-pixel text-amber-800 uppercase font-bold tracking-wider">
+                        🎁 ОТКРЫТ АВТОМАТ УДАЧИ (ГАЧА)! 🎈
+                      </span>
+                      <p className="text-[11px] font-medium text-slate-800 leading-relaxed">
+                        Невероятно! Тебе открылась Коробка Удачи! Используй заработанные купоны, чтобы призвать новых редких и легендарных котиков в свой уютный домик. Попытай удачу прямо сейчас! 🎁😻
+                      </p>
+                      <div className="absolute -bottom-2 right-[30%] w-4 h-4 bg-[#FFF6E5] border-r-4 border-b-4 border-amber-400 rotate-45" />
+                    </>
+                  )}
+                </div>
+
+                {/* Guiding hand arrow overlay directly on the tab */}
+                <div
+                  className={`absolute bottom-[2px] flex flex-col items-center animate-bounce z-50 pointer-events-none select-none ${
+                    activeUnlockTutorialTab === "achievements"
+                      ? "left-[5%]"
+                      : activeUnlockTutorialTab === "shop"
+                      ? "left-[25%]"
+                      : activeUnlockTutorialTab === "gacha"
+                      ? "right-[25%]"
+                      : "right-[5%]"
+                  }`}
+                >
+                  <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-pixel font-bold text-[8px] px-2 py-0.5 rounded-lg shadow-md border border-amber-300 uppercase tracking-wide whitespace-nowrap mb-1">
+                    Жми сюда! 👉
+                  </div>
+                  <span className="text-2xl">👇</span>
+                </div>
+              </div>
+            )}
 
             {/* BOTTOM TAB BAR (Only visible if selectedPuzzle is null) */}
             {!selectedPuzzle && (
