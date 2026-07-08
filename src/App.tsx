@@ -58,7 +58,8 @@ export default function App() {
   // Lives/Hearts system states
   const [menuLives, setMenuLives] = useState<number>(() => {
     const saved = localStorage.getItem("meowcolor_lives_count");
-    return saved !== null ? parseInt(saved, 10) : 5;
+    const loaded = saved !== null ? parseInt(saved, 10) : 3;
+    return Math.min(3, loaded);
   });
   const [lastRegenTime, setLastRegenTime] = useState<number>(() => {
     const saved = localStorage.getItem("meowcolor_lives_last_regen");
@@ -77,9 +78,9 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Lives regeneration system (1 heart per 10 minutes)
+  // Lives regeneration system (1 heart per 10 minutes, max 3 energy)
   useEffect(() => {
-    if (menuLives >= 5) {
+    if (menuLives >= 3) {
       localStorage.setItem("meowcolor_lives_last_regen", Date.now().toString());
       setLastRegenTime(Date.now());
       return;
@@ -92,7 +93,7 @@ export default function App() {
 
       if (elapsed >= regenPeriod) {
         const livesToRestore = Math.floor(elapsed / regenPeriod);
-        const newLives = Math.min(5, menuLives + livesToRestore);
+        const newLives = Math.min(3, menuLives + livesToRestore);
         const leftoverTime = elapsed % regenPeriod;
         const newRegenTime = now - leftoverTime;
 
@@ -132,7 +133,7 @@ export default function App() {
         setMenuLives((mL) => {
           const newL = Math.max(0, mL - 1);
           localStorage.setItem("meowcolor_lives_count", newL.toString());
-          if (mL === 5) {
+          if (mL === 3) {
             // Regeneration starts now
             localStorage.setItem("meowcolor_lives_last_regen", Date.now().toString());
             setLastRegenTime(Date.now());
@@ -992,7 +993,7 @@ export default function App() {
       setMenuLives((mL) => {
         const newL = Math.max(0, mL - 1);
         localStorage.setItem("meowcolor_lives_count", newL.toString());
-        if (mL === 5) {
+        if (mL === 3) {
           // Regeneration starts now
           localStorage.setItem("meowcolor_lives_last_regen", Date.now().toString());
           setLastRegenTime(Date.now());
@@ -1404,25 +1405,51 @@ export default function App() {
 
               {/* Header bottom row for Lives/Hearts in menu (only shown after tutorial completion) */}
               {!selectedPuzzle && completedPuzzles.includes("toy_yarn_ball") && (
-                <div className="flex justify-between items-center border-t border-rose-300 mt-2 pt-1.5 px-1 select-none animate-fade-in">
+                <div className="mt-2.5 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-rose-500/10 border-2 border-amber-400/40 rounded-2xl p-2 px-3 flex justify-between items-center select-none animate-bounce-slow shadow-sm">
                   {/* Hearts block */}
-                  <div className="flex items-center gap-1">
-                    <span className="text-[9px] font-pixel text-rose-100 uppercase tracking-wide">Энергия:</span>
-                    <div className="flex gap-0.5">
-                      {[1, 2, 3, 4, 5].map((idx) => (
-                        <span key={idx} className={`text-sm filter drop-shadow-sm transition-transform duration-200 ${idx <= menuLives ? "text-amber-300 animate-pulse" : "opacity-30 text-slate-400"}`}>
-                          ⚡
-                        </span>
-                      ))}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center bg-amber-400 text-slate-950 rounded-full w-5 h-5 shadow-inner scale-110">
+                      <span className="text-xs font-bold">⚡</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-pixel text-rose-200 uppercase tracking-wider leading-none">Энергия Художника</span>
+                      <div className="flex gap-1 mt-0.5">
+                        {[1, 2, 3].map((idx) => {
+                          const active = idx <= menuLives;
+                          return (
+                            <span 
+                              key={idx} 
+                              className={`text-base transition-all duration-300 filter drop-shadow-[0_0_4px_rgba(251,191,36,0.5)] ${
+                                active 
+                                  ? "text-amber-300 scale-110 animate-pulse font-bold" 
+                                  : "opacity-25 text-slate-500 scale-90"
+                              }`}
+                              style={{ textShadow: active ? "0 0 6px #FBBF24" : "none" }}
+                            >
+                              ⚡
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                  {/* Countdown */}
-                  {menuLives < 5 && (
-                    <div className="flex items-center gap-1 font-pixel text-[8.5px] text-rose-100 font-bold bg-rose-500/35 px-2 py-0.5 rounded-full border border-rose-300/20">
-                      <span>⏰ +1 через:</span>
-                      <span className="text-white font-black">{getRegenCountdown()}</span>
-                    </div>
-                  )}
+                  {/* Countdown / Status */}
+                  <div className="flex flex-col items-end">
+                    {menuLives < 3 ? (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-[7px] font-pixel text-amber-200/80 uppercase">Зарядка энергии</span>
+                        <div className="flex items-center gap-1 font-pixel text-[8.5px] text-white font-black bg-rose-600/60 border border-rose-400/30 px-2 py-0.5 rounded-full shadow-xs">
+                          <span>⏰ {getRegenCountdown()}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-end">
+                        <span className="text-[7.5px] font-pixel text-emerald-300 uppercase font-black tracking-wide bg-emerald-950/40 border border-emerald-500/30 px-1.5 py-0.5 rounded-md animate-pulse">
+                          Максимум 🔥
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </header>
@@ -1881,6 +1908,19 @@ export default function App() {
                             setHouseTutorialStep(null);
                             SOUNDS.playCompleteLevel();
                           }
+                          // 15% chance to restore 1 energy if energy is below max (3)
+                          setMenuLives((mL) => {
+                            if (mL < 3) {
+                              const roll = Math.random() < 0.15;
+                              if (roll) {
+                                const newL = mL + 1;
+                                localStorage.setItem("meowcolor_lives_count", newL.toString());
+                                showToast("Котик мурчит от удовольствия! +1 Энергия ⚡🐾");
+                                return newL;
+                              }
+                            }
+                            return mL;
+                          });
                         }}
                         onPlayLevel={() => {}}
                         houseTutorialStep={houseTutorialStep}
@@ -2877,7 +2917,7 @@ export default function App() {
                     Ой! У тебя закончилась энергия. Подожди, пока она восстановится (1 молния каждые 10 минут) или погладь котиков в домике! 🥰🐾
                   </p>
 
-                  {menuLives < 5 && (
+                  {menuLives < 3 && (
                     <div className="mb-5 bg-rose-50 border border-rose-100 rounded-xl p-2.5 flex items-center justify-center gap-1.5 font-pixel text-[9px] text-rose-700 font-black uppercase">
                       <span>⏰ Следующая энергия через:</span>
                       <span className="text-rose-900 bg-white border border-rose-200 px-2 py-0.5 rounded-full">{getRegenCountdown()}</span>
@@ -2898,53 +2938,78 @@ export default function App() {
             )}
 
             {/* Level Complete visual Modal */}
+            {/* Level Complete visual Modal */}
             {levelCompleteModal?.active && (
-              <div className="absolute inset-0 z-50 bg-[#00000085] backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl p-5.5 shadow-2xl border-4 border-amber-400 max-w-sm w-full text-center relative select-none animate-fade-in">
-                  <div className="absolute top-2 left-6 text-xl animate-pulse">
+              <div className="absolute inset-0 z-50 bg-[#07040fd0] backdrop-blur-md flex items-center justify-center p-4">
+                <div className="bg-gradient-to-b from-[#1c122e] via-[#150a24] to-[#0e051a] rounded-3xl p-6 shadow-[0_0_50px_rgba(251,191,36,0.35)] border-4 border-amber-400 max-w-sm w-full text-center relative select-none animate-fade-in text-white overflow-visible">
+                  
+                  {/* Decorative glowing backdrops */}
+                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
+                  
+                  <div className="absolute top-2 left-6 text-xl animate-bounce">
                     ✨
                   </div>
                   <div className="absolute top-4 right-8 text-xl animate-ping">
                     🌸
                   </div>
-
-                  <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-300 shadow-3xs">
-                    <CheckCircle className="w-8 h-8 text-amber-500" />
+                  <div className="absolute bottom-16 left-4 text-lg opacity-70 animate-bounce">
+                    🎨
+                  </div>
+                  <div className="absolute bottom-24 right-4 text-lg opacity-70 animate-pulse">
+                    💖
                   </div>
 
-                  <h2 className="text-xs font-pixel text-amber-900 uppercase mb-3 leading-tight">
-                    Картина Завершена! 🎉
+                  <div className="w-12 h-12 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-2 border-2 border-amber-200 shadow-lg animate-bounce">
+                    <span className="text-xl">🏆</span>
+                  </div>
+
+                  <h2 className="text-[10.5px] font-pixel text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-100 uppercase mb-2 leading-tight tracking-wider animate-pulse">
+                    ШЕДЕВР ГОТОВ! 🎉
                   </h2>
 
-                  {/* Finished drawing preview container */}
+                  <p className="text-[9.5px] text-amber-200/90 font-semibold leading-relaxed mb-4 font-sans italic px-2">
+                    «Просто мур-р-р-фектно! Твои лапки сотворили настоящее чудо!» 🐾🎨💖
+                  </p>
+
+                  {/* Finished drawing preview container with golden rotating sunburst aura */}
                   {selectedPuzzle && (
-                    <div className="w-40 h-40 mx-auto mb-4 bg-[linear-gradient(135deg,#FFF9E6_0%,#FFF5D6_100%)] rounded-2xl p-2.5 border-4 border-amber-300 shadow-inner flex items-center justify-center relative overflow-hidden">
-                      <div
-                        className="grid gap-[1px]"
-                        style={{
-                          gridTemplateColumns: `repeat(${selectedPuzzle.width}, minmax(0, 1fr))`,
-                          width: "100%",
-                          height: "100%",
-                        }}
-                      >
-                        {selectedPuzzle.rows.flatMap((rowStr) =>
-                          rowStr.split("").map((c, i) => {
-                            const num = c === "." ? 0 : parseInt(c, 10);
-                            const color = selectedPuzzle.colors.find(
-                              (col) => col.number === num,
-                            );
-                            return (
-                              <div
-                                key={i}
-                                className="rounded-xs"
-                                style={{
-                                  backgroundColor:
-                                    num === 0 ? "transparent" : color?.hex,
-                                }}
-                              />
-                            );
-                          }),
-                        )}
+                    <div className="relative w-44 h-44 mx-auto mb-4 flex items-center justify-center">
+                      {/* Rotating halo background lines */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none scale-125 overflow-visible">
+                        <div className="w-44 h-44 rounded-full border-2 border-dashed border-amber-400/20 animate-spin-slow" />
+                        <div className="absolute w-48 h-48 rounded-full border border-double border-orange-400/10 animate-spin-slow [animation-direction:reverse]" />
+                      </div>
+                      
+                      {/* Artwork card framed */}
+                      <div className="relative z-10 w-36 h-36 bg-slate-900 rounded-2xl p-2.5 border-4 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)] flex items-center justify-center overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/5 via-rose-500/5 to-transparent pointer-events-none" />
+                        <div
+                          className="grid gap-[1px]"
+                          style={{
+                            gridTemplateColumns: `repeat(${selectedPuzzle.width}, minmax(0, 1fr))`,
+                            width: "100%",
+                            height: "100%",
+                          }}
+                        >
+                          {selectedPuzzle.rows.flatMap((rowStr) =>
+                            rowStr.split("").map((c, i) => {
+                              const num = c === "." ? 0 : parseInt(c, 10);
+                              const color = selectedPuzzle.colors.find(
+                                (col) => col.number === num,
+                              );
+                              return (
+                                <div
+                                  key={i}
+                                  className="rounded-xs"
+                                  style={{
+                                    backgroundColor:
+                                      num === 0 ? "transparent" : color?.hex,
+                                  }}
+                                />
+                              );
+                            }),
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2979,15 +3044,15 @@ export default function App() {
                       : "Супер-Кота";
 
                     return (
-                      <div className="mb-4 bg-gradient-to-r from-amber-50/70 to-orange-50/70 border border-amber-100 rounded-2xl p-2.5 flex flex-col gap-1.5 text-left select-none shadow-3xs relative overflow-visible">
-                        <div className="flex justify-between items-center text-[8px] font-pixel text-amber-950 font-bold uppercase">
+                      <div className="mb-4 bg-slate-900/60 border border-amber-500/30 rounded-2xl p-2.5 flex flex-col gap-1.5 text-left select-none relative overflow-visible">
+                        <div className="flex justify-between items-center text-[7.5px] font-pixel text-amber-200 font-bold uppercase">
                           <span className="flex items-center gap-1">🐾 Прогресс главы ({catName}):</span>
-                          <span className="bg-amber-200 px-1.5 py-0.5 rounded-full text-amber-950 text-[7px]">
+                          <span className="bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded-full text-[7px] font-black">
                             {completedRegular}/{totalRegular}
                           </span>
                         </div>
                         <div className="relative w-full h-2.5 mt-1">
-                          <div className="w-full bg-amber-100/40 h-full rounded-full border border-amber-200/40 relative flex items-center p-0.5 shadow-inner overflow-hidden">
+                          <div className="w-full bg-slate-950/80 h-full rounded-full border border-amber-500/20 relative flex items-center p-0.5 shadow-inner overflow-hidden">
                             <div
                               className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full shadow-2xs"
                               style={{ width: `${animateProgressPercent}%` }}
@@ -3047,9 +3112,9 @@ export default function App() {
                       setSelectedPuzzle(null);
                       SOUNDS.playPop(1.1);
                     }}
-                    className="w-full bg-gradient-to-r from-amber-400 to-amber-500 border-2 border-amber-500 p-2.5 font-pixel text-[9px] text-slate-950 rounded-2xl shadow-sm hover:bg-amber-300 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold"
+                    className="w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 border-2 border-amber-500 p-3 font-pixel text-[8.5px] text-slate-950 rounded-2xl shadow-[0_0_15px_rgba(245,158,11,0.35)] hover:scale-102 hover:from-amber-300 hover:to-orange-300 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold flex items-center justify-center gap-1"
                   >
-                    ЗАБРАТЬ НАГРАДУ: +{levelCompleteModal?.yarnEarned} ПРЯЖИ 🧶
+                    🐾 ЗАБРАТЬ НАГРАДУ: +{levelCompleteModal?.yarnEarned} ПРЯЖИ 🧶
                   </button>
                 </div>
               </div>

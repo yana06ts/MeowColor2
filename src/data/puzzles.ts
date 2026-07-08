@@ -85,8 +85,8 @@ export const PUZZLE_TEMPLATES: PuzzleTemplate[] = [
       { number: 4, hex: "#E65100", name: "Огненные полоски" },
       { number: 5, hex: "#1E1F22", name: "Чёрные глазки" }
     ],
-    difficulty: "Medium",
-    yarnReward: 95,
+    difficulty: "Expert",
+    yarnReward: 120,
     description: "Шустрый рыжий котейка с золотистыми полосками и пухлыми радостными щеками."
   },
   {
@@ -594,8 +594,8 @@ export const PUZZLE_TEMPLATES: PuzzleTemplate[] = [
       { number: 4, hex: "#D84315", name: "Вазон из обожжённой глины" },
       { number: 5, hex: "#FF8A65", name: "Светлые блики горшка" }
     ],
-    difficulty: "Expert",
-    yarnReward: 120,
+    difficulty: "Medium",
+    yarnReward: 95,
     description: "Роскошные резные листья домашней монстеры в классическом кашпо терракотового оттенка."
   },
   {
