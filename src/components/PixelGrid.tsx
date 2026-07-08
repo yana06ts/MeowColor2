@@ -192,6 +192,11 @@ export function PixelGrid({
 
   // Handle core cell coloring logic when user draws on a cell
   const handleCellAction = (index: number, row: number, col: number, isDragSwipe: boolean = false) => {
+    if (tutorialStep === 1) {
+      showLockedTooltip("🐾 Сначала выберите цвет внизу экрана!");
+      return;
+    }
+
     // Automatically dismiss booster tutorials on any action
     if (showWandTutorial) {
       localStorage.setItem("meowcolor_tutorial_wand", "completed");
@@ -216,6 +221,10 @@ export function PixelGrid({
 
     // 1. Wand Powerup Active?
     if (activeSpecialTool === "wand") {
+      if (cell.number !== selectedColorNumber) {
+        showLockedTooltip("🐾 Бустер применяется только на выбранный цвет!");
+        return;
+      }
       const isWandInfinite = levelNumber === 3;
       if (!isWandInfinite && powerupCounts.wand <= 0) {
         SOUNDS.playError();
@@ -268,6 +277,10 @@ export function PixelGrid({
 
     // 2. Bomb Powerup Active?
     if (activeSpecialTool === "bomb") {
+      if (cell.number !== selectedColorNumber) {
+        showLockedTooltip("🐾 Бустер применяется только на выбранный цвет!");
+        return;
+      }
       const isBombInfinite = levelNumber === 5;
       if (!isBombInfinite && powerupCounts.bomb <= 0) {
         SOUNDS.playError();
@@ -353,6 +366,7 @@ export function PixelGrid({
 
   // Continuous Swipe coloring over matching pixels using elementFromPoint touch technique
   const handleTouchMoveSwipe = (e: React.TouchEvent) => {
+    if (tutorialStep === 1) return;
     if (toolMode === "draw" && e.touches.length === 1) {
       const touch = e.touches[0];
       const element = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -602,7 +616,7 @@ export function PixelGrid({
                   }}
                   onMouseEnter={() => {
                     // Holding dragging paints the coordinates immediately
-                    if (toolMode === "draw" && isMouseDown.current) {
+                    if (toolMode === "draw" && isMouseDown.current && tutorialStep !== 1) {
                       handleCellAction(idx, r, c, true);
                     }
                   }}
