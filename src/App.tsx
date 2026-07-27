@@ -341,10 +341,12 @@ export default function App() {
   );
   const [rollingGacha, setRollingGacha] = useState<boolean>(false);
   const [rolledReward, setRolledReward] = useState<{
-    puzzle: PuzzleTemplate;
-    isCat: boolean;
-    isNew: boolean;
-    duplicateReward: boolean;
+    type: "decor" | "booster" | "yarn" | "coupons" | "crystal" | "cat_puzzle";
+    title: string;
+    name: string;
+    image: string;
+    description: string;
+    goToRoom?: boolean;
   } | null>(null);
 
   // 3. Audio & UI options
@@ -1947,14 +1949,24 @@ export default function App() {
                   {activeTab === "gacha" && (
                     <div className="flex-1 flex flex-col items-center justify-center bg-[#FFFBF0] animate-fade-in p-4 space-y-4 overflow-y-auto">
                       {/* Visual Gacha Present Box */}
-                      <div className="bg-white border-2 border-rose-100 rounded-[32px] p-6 shadow-md flex flex-col items-center w-full max-w-xs shrink-0 select-none">
-                        <div className="text-center">
+                      <div className="bg-white border-2 border-rose-100 rounded-[32px] p-5 shadow-md flex flex-col items-center w-full max-w-xs shrink-0 select-none">
+                        <div className="text-center w-full">
                           <h3 className="text-[12px] font-pixel font-black text-rose-800 uppercase leading-none tracking-wide">
                             Коробка Удачи ✨🎁✨
                           </h3>
-                          <p className="text-[8.5px] text-slate-400 leading-none mt-2 font-semibold">
+                          <p className="text-[8.5px] text-slate-400 leading-none mt-1.5 font-semibold">
                             Купоны: {gachaTickets} 🎟️ • Пряжа: {yarnCount} 🧶
                           </p>
+
+                          {/* Info card describing drop contents */}
+                          <div className="mt-2.5 bg-amber-50/80 border border-amber-200/60 rounded-xl p-2 text-center w-full">
+                            <span className="text-[8px] font-pixel text-amber-900 font-extrabold uppercase tracking-tight block">
+                              Что внутри коробки? 🎁
+                            </span>
+                            <p className="text-[7.5px] text-amber-800/80 mt-0.5 leading-tight font-medium">
+                              🛋️ Новый Декор • ⚡ Бустеры • 🧶 Пряжа • 🎟️ Купоны • 💎 Кристаллы (редко!)
+                            </p>
+                          </div>
                         </div>
 
                         {/* Highly aesthetic animated Gift Box Container */}
@@ -1984,66 +1996,201 @@ export default function App() {
                             setRollingGacha(true);
 
                             setTimeout(() => {
-                              const rolled =
-                                GACHA_EXCLUSIVE_PUZZLES[
-                                  Math.floor(
-                                    Math.random() *
-                                      GACHA_EXCLUSIVE_PUZZLES.length,
-                                  )
-                                ];
-                              let isCat = rolled.category === "cats";
-                              let rewardObj: any = {
-                                puzzle: rolled,
-                                isCat,
-                                isNew: false,
-                                duplicateReward: false,
-                              };
+                              const rand = Math.random();
 
-                              if (isCat) {
-                                const isAlreadyUnlocked =
-                                  gachaUnlockedCats.includes(rolled.id);
-                                if (!isAlreadyUnlocked) {
-                                  const updated = [
-                                    ...gachaUnlockedCats,
-                                    rolled.id,
-                                  ];
-                                  setGachaUnlockedCats(updated);
-                                  localStorage.setItem(
-                                    "meowcolor_gacha_unlocked",
-                                    JSON.stringify(updated),
-                                  );
-                                  rewardObj.isNew = true;
+                              // 1. Rare Crystal (💎) - ~4% chance
+                              if (rand < 0.04) {
+                                updateGoldYarn(goldYarnCount + 1);
+                                setRolledReward({
+                                  type: "crystal",
+                                  title: "💎 РЕДКАЯ НАХОДКА! 💎",
+                                  name: "+1 Драгоценный Кристалл 💎",
+                                  image: "💎",
+                                  description: "Вау! Вам улыбнулась супер-удача! Вы нашли 1 драгоценный кристалл для покупок!",
+                                  goToRoom: false,
+                                });
+                              }
+                              // 2. Coupons (🎟️) - ~10% chance
+                              else if (rand < 0.14) {
+                                updateGachaTickets(gachaTickets + 2);
+                                setRolledReward({
+                                  type: "coupons",
+                                  title: "🎟️ БИЛЕТЫ УДАЧИ! 🎟️",
+                                  name: "+2 Купона 🎟️",
+                                  image: "🎟️",
+                                  description: "Отлично! В коробке оказалось 2 купона для новых открытий!",
+                                  goToRoom: false,
+                                });
+                              }
+                              // 3. Boosters (Бустеры 🪄💣🔍) - ~20% chance
+                              else if (rand < 0.34) {
+                                const boosterTypes: Array<"wand" | "bomb" | "magnifier"> = ["wand", "bomb", "magnifier"];
+                                const chosenType = boosterTypes[Math.floor(Math.random() * boosterTypes.length)];
+                                const qty = Math.random() < 0.4 ? 2 : 1;
+
+                                const nextPowerups = { ...powerups, [chosenType]: powerups[chosenType] + qty };
+                                updatePowerupsVal(nextPowerups);
+
+                                const names = {
+                                  wand: `+${qty} Волшебная палочка 🪄`,
+                                  bomb: `+${qty} Кошачья бомбочка 💣`,
+                                  magnifier: `+${qty} Супер-лупа 🔍`,
+                                };
+                                const icons = { wand: "🪄", bomb: "💣", magnifier: "🔍" };
+
+                                setRolledReward({
+                                  type: "booster",
+                                  title: "⚡ ПОЛЕЗНЫЙ БУСТЕР! ⚡",
+                                  name: names[chosenType],
+                                  image: icons[chosenType],
+                                  description: "Бустеры добавлены в ваш арсенал и помогут вам с лёгкостью закрашивать картинки!",
+                                  goToRoom: false,
+                                });
+                              }
+                              // 4. Regular Yarn (Пряжа 🧶) - ~15% chance
+                              else if (rand < 0.49) {
+                                const amounts = [150, 200, 250, 300];
+                                const amount = amounts[Math.floor(Math.random() * amounts.length)];
+                                updateYarn(yarnCount + amount);
+                                setRolledReward({
+                                  type: "yarn",
+                                  title: "🧶 МЯГКАЯ ПРЯЖА! 🧶",
+                                  name: `+${amount} Мотков Пряжи 🧶`,
+                                  image: "🧶",
+                                  description: `Ваш баланс пополнен на +${amount} мотков обычной пряжи!`,
+                                  goToRoom: false,
+                                });
+                              }
+                              // 5. Decor items (В основном Декор - ~41% chance)
+                              else if (rand < 0.90) {
+                                const decorPool = [
+                                  { id: "cushion", name: "Королевский диван 🛋️", icon: "🛋️", type: "item" },
+                                  { id: "golden_fish", name: "Миска с карасями 🥣", icon: "🥣", type: "item" },
+                                  { id: "tunnel", name: "Коробка мечты 📦", icon: "📦", type: "item" },
+                                  { id: "luxury_tower", name: "Кото-Небоскрёб 🏰", icon: "🏰", type: "item" },
+                                  { id: "cactus_scratch", name: "Кактус-когтеточка 🌵", icon: "🌵", type: "item" },
+                                  { id: "aquarium", name: "Аквариум 🐠", icon: "🐠", type: "item" },
+                                  { id: "space_rug", name: "Звёздный ковер 🌌", icon: "🌌", type: "rug" },
+                                  { id: "rainbow_rug", name: "Радужные лапки 🌈", icon: "🌈", type: "rug" },
+                                  { id: "golden_royal", name: "Тронный ковёр 👑", icon: "👑", type: "rug" },
+                                  { id: "checkered_cyber", name: "Кибер-шахматы 🔲", icon: "🔲", type: "rug" },
+                                  { id: "stars", name: "Обои Звёздное небо 🌌", icon: "🌌", type: "wallpaper" },
+                                  { id: "sakura", name: "Обои Цветущая сакура 🌸", icon: "🌸", type: "wallpaper" },
+                                  { id: "neon_wallpaper", name: "Космические обои 👾", icon: "👾", type: "wallpaper" },
+                                  { id: "mint_clouds", name: "Мятные облака ☁️", icon: "☁️", type: "wallpaper" },
+                                  { id: "golden_damask", name: "Золотой дамаск ⚜️", icon: "⚜️", type: "wallpaper" },
+                                  { id: "strawberry_milk", name: "Клубничное молоко 🍓", icon: "🍓", type: "wallpaper" },
+                                ];
+
+                                const savedItemsStr = localStorage.getItem("meowcolor_purchased_items");
+                                const savedRugsStr = localStorage.getItem("meowcolor_purchased_rugs");
+                                const savedWallStr = localStorage.getItem("meowcolor_purchased_wallpapers");
+
+                                const currentItems: string[] = savedItemsStr ? JSON.parse(savedItemsStr) : [];
+                                const currentRugs: string[] = savedRugsStr ? JSON.parse(savedRugsStr) : ["pink"];
+                                const currentWallpapers: string[] = savedWallStr ? JSON.parse(savedWallStr) : ["stripes"];
+
+                                const unownedDecor = decorPool.filter((d) => {
+                                  if (d.type === "item") return !currentItems.includes(d.id);
+                                  if (d.type === "rug") return !currentRugs.includes(d.id);
+                                  if (d.type === "wallpaper") return !currentWallpapers.includes(d.id);
+                                  return false;
+                                });
+
+                                if (unownedDecor.length > 0) {
+                                  const chosen = unownedDecor[Math.floor(Math.random() * unownedDecor.length)];
+                                  if (chosen.type === "item") {
+                                    const updated = [...currentItems, chosen.id];
+                                    localStorage.setItem("meowcolor_purchased_items", JSON.stringify(updated));
+                                  } else if (chosen.type === "rug") {
+                                    const updated = [...currentRugs, chosen.id];
+                                    localStorage.setItem("meowcolor_purchased_rugs", JSON.stringify(updated));
+                                  } else if (chosen.type === "wallpaper") {
+                                    const updated = [...currentWallpapers, chosen.id];
+                                    localStorage.setItem("meowcolor_purchased_wallpapers", JSON.stringify(updated));
+                                  }
+
+                                  setRolledReward({
+                                    type: "decor",
+                                    title: "🎉 НОВЫЙ ДЕКОР! 🎉",
+                                    name: chosen.name,
+                                    image: chosen.icon,
+                                    description: "Ура! Этот декор разблокирован и сразу доступен в меню дизайна вашего Кото-Домика! 🛋️🏠",
+                                    goToRoom: true,
+                                  });
                                 } else {
-                                  const currentDup =
-                                    catDuplicates[rolled.id] || 0;
-                                  const updated = {
-                                    ...catDuplicates,
-                                    [rolled.id]: currentDup + 1,
-                                  };
-                                  updateCatDuplicates(updated);
-                                  rewardObj.duplicateReward = true;
+                                  updateYarn(yarnCount + 200);
+                                  updateGachaTickets(gachaTickets + 1);
+                                  setRolledReward({
+                                    type: "decor",
+                                    title: "✨ ВЕСЬ ДЕКОР СОБРАН! ✨",
+                                    name: "+200 Пряжи 🧶 & +1 Купон 🎟️",
+                                    image: "🎁",
+                                    description: "У вас уже открыт весь доступный декор! Начислен ценный бонус!",
+                                    goToRoom: false,
+                                  });
                                 }
-                              } else {
-                                const isAlreadyUnlocked =
-                                  unlockedGachaPuzzleIds.includes(rolled.id);
-                                if (!isAlreadyUnlocked) {
-                                  const updated = [
-                                    ...unlockedGachaPuzzleIds,
-                                    rolled.id,
-                                  ];
-                                  setUnlockedGachaPuzzleIds(updated);
-                                  localStorage.setItem(
-                                    "meowcolor_unlocked_gacha_puzzles",
-                                    JSON.stringify(updated),
-                                  );
-                                  rewardObj.isNew = true;
+                              }
+                              // 6. Cat or Picture Puzzle (~10% chance)
+                              else {
+                                const rolled = GACHA_EXCLUSIVE_PUZZLES[Math.floor(Math.random() * GACHA_EXCLUSIVE_PUZZLES.length)];
+                                const isCat = rolled.category === "cats";
+
+                                if (isCat) {
+                                  const isAlreadyUnlocked = gachaUnlockedCats.includes(rolled.id);
+                                  if (!isAlreadyUnlocked) {
+                                    const updated = [...gachaUnlockedCats, rolled.id];
+                                    setGachaUnlockedCats(updated);
+                                    localStorage.setItem("meowcolor_gacha_unlocked", JSON.stringify(updated));
+                                    setRolledReward({
+                                      type: "cat_puzzle",
+                                      title: "🎉 НОВЫЙ КОТИК! 🎉",
+                                      name: rolled.name,
+                                      image: rolled.image || "🐱",
+                                      description: "Ура! Новый пушистый котик поселился в вашем Кото-Домике! 🐱🏠",
+                                      goToRoom: true,
+                                    });
+                                  } else {
+                                    const currentDup = catDuplicates[rolled.id] || 0;
+                                    const updated = { ...catDuplicates, [rolled.id]: currentDup + 1 };
+                                    updateCatDuplicates(updated);
+                                    setRolledReward({
+                                      type: "cat_puzzle",
+                                      title: "✨ ДУБЛИКАТ КОТИКА! ✨",
+                                      name: rolled.name,
+                                      image: rolled.image || "🐱",
+                                      description: "Повторка! Засчитан дубликат котика для прокачки его уровня +1 🌟",
+                                      goToRoom: true,
+                                    });
+                                  }
                                 } else {
-                                  updateYarn(yarnCount + 150);
-                                  rewardObj.duplicateReward = true;
+                                  const isAlreadyUnlocked = unlockedGachaPuzzleIds.includes(rolled.id);
+                                  if (!isAlreadyUnlocked) {
+                                    const updated = [...unlockedGachaPuzzleIds, rolled.id];
+                                    setUnlockedGachaPuzzleIds(updated);
+                                    localStorage.setItem("meowcolor_unlocked_gacha_puzzles", JSON.stringify(updated));
+                                    setRolledReward({
+                                      type: "cat_puzzle",
+                                      title: "🎉 НОВАЯ КАРТИНКА! 🎉",
+                                      name: rolled.name,
+                                      image: rolled.image || "🖼️",
+                                      description: "Эксклюзивная картина разблокирована в вашем меню выбора уровней! 🖼️",
+                                      goToRoom: false,
+                                    });
+                                  } else {
+                                    updateYarn(yarnCount + 200);
+                                    setRolledReward({
+                                      type: "cat_puzzle",
+                                      title: "✨ ДУБЛИКАТ КАРТИНЫ! ✨",
+                                      name: rolled.name,
+                                      image: rolled.image || "🖼️",
+                                      description: "Повторка картины! Вам начислено +200 обычной пряжи! 🧶",
+                                      goToRoom: false,
+                                    });
+                                  }
                                 }
                               }
 
-                              setRolledReward(rewardObj);
                               setRollingGacha(false);
                               SOUNDS.playCompleteLevel();
                             }, 1500);
@@ -3184,27 +3331,21 @@ export default function App() {
               <div className="absolute inset-0 z-50 bg-[#000000a0] backdrop-blur-xs flex items-center justify-center p-4">
                 <div className="bg-gradient-to-b from-[#FFFDF6] via-[#FFFBF0] to-[#FFF6DC] rounded-[2.5rem] p-6 shadow-2xl border-4 border-amber-400 max-w-sm w-full text-center relative select-none animate-fade-in text-[#5C3A21]">
                   <div className="w-20 h-20 bg-gradient-to-tr from-amber-300 via-orange-300 to-rose-300 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white shadow-lg animate-bounce">
-                    <span className="text-4xl">{rolledReward.puzzle.image || "🐱"}</span>
+                    <span className="text-4xl">{rolledReward.image || "🎁"}</span>
                   </div>
                   <h2 className="text-xs font-pixel font-black text-amber-600 uppercase tracking-wide mb-1">
-                    {rolledReward.isNew ? "🎉 НОВАЯ НАХОДКА! 🎉" : "✨ ДУБЛИКАТ! ✨"}
+                    {rolledReward.title}
                   </h2>
-                  <h3 className="text-lg font-pixel text-slate-800 font-extrabold uppercase mb-2">
-                    {rolledReward.puzzle.name}
+                  <h3 className="text-base font-pixel text-slate-800 font-extrabold uppercase mb-2">
+                    {rolledReward.name}
                   </h3>
                   <div className="bg-amber-100/90 p-3 rounded-2xl border border-amber-200/80 mb-5 text-left">
                     <p className="text-[10px] font-pixel text-amber-900 leading-relaxed font-semibold">
-                      {rolledReward.isCat
-                        ? rolledReward.isNew
-                          ? "Ура! Новый пушистый котик теперь живет в вашем Домике! 🐱🏠"
-                          : "Повторка! Засчитан дубликат котика для прокачки +1 🌟"
-                        : rolledReward.isNew
-                        ? "Новая картина добавлена в вашу коллекцию уровней! 🖼️"
-                        : "Повторка! Вам начислено +150 обычной пряжи! 🧶"}
+                      {rolledReward.description}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2">
-                    {rolledReward.isCat && (
+                    {rolledReward.goToRoom && (
                       <button
                         onClick={() => {
                           setRolledReward(null);

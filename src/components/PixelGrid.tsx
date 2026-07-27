@@ -663,32 +663,69 @@ export function PixelGrid({
             })}
           </div>
 
-          {/* Bomb Explosion Effect Overlay */}
+          {/* Bomb Explosion Effect Overlay (Stars and Sparkles Burst) */}
           {bombExplosion && (
             <div
-              className="absolute pointer-events-none z-50 flex flex-col items-center justify-center animate-fade-in"
+              className="absolute pointer-events-none z-50 flex items-center justify-center"
               style={{
                 left: `${((bombExplosion.col + 0.5) / puzzle.width) * 100}%`,
                 top: `${((bombExplosion.row + 0.5) / puzzle.height) * 100}%`,
                 transform: "translate(-50%, -50%)",
               }}
             >
+              {/* Expanding Shockwave Ring 1 */}
               <div
-                className="absolute w-28 h-28 rounded-full border-4 animate-ping opacity-80 shadow-2xl"
+                className="absolute w-32 h-32 rounded-full border-4 animate-ping opacity-90 shadow-[0_0_30px_rgba(251,191,36,0.8)]"
                 style={{
                   borderColor: bombExplosion.colorHex || "#f59e0b",
-                  backgroundColor: `${bombExplosion.colorHex}40` || "rgba(245, 158, 11, 0.25)",
+                  backgroundColor: `${bombExplosion.colorHex}35` || "rgba(245, 158, 11, 0.25)",
                 }}
               />
+              {/* Expanding Shockwave Ring 2 */}
               <div
-                className="absolute w-20 h-20 rounded-full border-2 border-white/90 animate-pulse shadow-xl flex items-center justify-center"
+                className="absolute w-20 h-20 rounded-full border-2 border-white animate-pulse shadow-2xl flex items-center justify-center scale-125"
                 style={{
-                  backgroundColor: bombExplosion.colorHex || "#f59e0b",
+                  backgroundColor: `${bombExplosion.colorHex}70` || "rgba(245, 158, 11, 0.5)",
                 }}
               />
-              <div className="z-10 bg-slate-950 text-white font-pixel font-black text-[11px] px-2.5 py-1 rounded-xl shadow-2xl border-2 border-amber-300 animate-bounce tracking-wider whitespace-nowrap">
-                💥 БУМ! 💥
+              {/* Central Glowing Sparkle Flare */}
+              <div className="z-10 text-3xl animate-bounce drop-shadow-[0_0_12px_rgba(255,255,255,0.9)] scale-125">
+                ✨
               </div>
+
+              {/* Radial Bursting Stars & Sparkles */}
+              {[
+                { icon: "⭐", angle: 0, dist: 75, delay: "0s" },
+                { icon: "✨", angle: 30, dist: 85, delay: "0.05s" },
+                { icon: "🌟", angle: 60, dist: 70, delay: "0.02s" },
+                { icon: "💥", angle: 90, dist: 80, delay: "0s" },
+                { icon: "⭐", angle: 120, dist: 75, delay: "0.04s" },
+                { icon: "✨", angle: 150, dist: 90, delay: "0.01s" },
+                { icon: "🧶", angle: 180, dist: 80, delay: "0s" },
+                { icon: "🌟", angle: 210, dist: 85, delay: "0.03s" },
+                { icon: "⭐", angle: 240, dist: 70, delay: "0.05s" },
+                { icon: "✨", angle: 270, dist: 80, delay: "0s" },
+                { icon: "💥", angle: 300, dist: 85, delay: "0.02s" },
+                { icon: "🌟", angle: 330, dist: 75, delay: "0.04s" },
+              ].map((p, idx) => {
+                const rad = (p.angle * Math.PI) / 180;
+                const tx = Math.cos(rad) * p.dist;
+                const ty = Math.sin(rad) * p.dist;
+                return (
+                  <div
+                    key={idx}
+                    className="absolute text-xl pointer-events-none drop-shadow-md"
+                    style={{
+                      // Custom CSS properties for the burst-out keyframe
+                      ["--tx" as any]: `${tx}px`,
+                      ["--ty" as any]: `${ty}px`,
+                      animation: `burst-out 0.8s cubic-bezier(0.15, 0.85, 0.35, 1) ${p.delay} forwards`,
+                    }}
+                  >
+                    {p.icon}
+                  </div>
+                );
+              })}
             </div>
           )}
 
