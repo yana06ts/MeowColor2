@@ -925,8 +925,10 @@ export default function App() {
 
       updateYarn(yarnCount + finalReward);
 
-      // Clear partial progress state storage
+      // Clear partial progress state storage and tutorial step
       localStorage.removeItem(`meowcolor_progress_${puzzleId}`);
+      setTutorialStep(null);
+      localStorage.setItem("meowcolor_tutorial_coloring", "completed");
 
       setIsLevelCelebrating(true);
       SOUNDS.playCompleteLevel();
@@ -968,7 +970,7 @@ export default function App() {
           prevPercent,
           targetPercent,
         });
-      }, 1000);
+      }, 3000);
     }
   };
 
@@ -1529,7 +1531,7 @@ export default function App() {
 
 
                     {/* Coloring tutorial bubble */}
-                    {tutorialStep !== null && (
+                    {tutorialStep !== null && !levelCompleteModal && !isLevelCelebrating && (
                       <div className="absolute inset-x-0 bottom-4 z-50 flex flex-col items-center px-4 pointer-events-auto">
                         <div className="bg-[#FFF6E5] text-[#5C3A21] p-3.5 rounded-2xl border-2 border-amber-300 shadow-2xl max-w-xs text-center animate-fade-in flex flex-col gap-1.5 select-none relative">
                           <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center justify-center bg-amber-400 text-amber-950 text-[7.5px] font-pixel font-bold px-2 py-0.5 rounded-full border border-amber-200 shadow-xs whitespace-nowrap">
@@ -3096,6 +3098,8 @@ export default function App() {
                       setLevelCompleteModal(null);
                       setSelectedPuzzle(null);
                       setIsLevelCelebrating(false);
+                      setTutorialStep(null);
+                      localStorage.setItem("meowcolor_tutorial_coloring", "completed");
                       SOUNDS.playPop(1.1);
 
                       // If next level is a Super Cat, trigger intro immediately!

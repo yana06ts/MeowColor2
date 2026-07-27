@@ -692,12 +692,12 @@ export function PixelGrid({
             </div>
           )}
 
-          {/* Victory Celebration Wave Overlay */}
+          {/* Victory Celebration Wave Overlay - Clean non-tinted artwork with badge at top */}
           {isCelebrating && (
-            <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden rounded-xl animate-fade-in">
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-400/25 via-rose-400/25 to-yellow-300/25 animate-pulse" />
-              <div className="w-full h-full border-4 border-amber-400 rounded-xl shadow-[inset_0_0_35px_rgba(251,191,36,0.7)] animate-pulse" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 font-pixel font-black text-xs px-4 py-2 rounded-2xl shadow-2xl border-2 border-amber-200 animate-bounce tracking-widest uppercase flex items-center gap-2">
+            <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden rounded-xl animate-fade-in">
+              {/* Subtle gold glow border without darkening or tinting the artwork pixels */}
+              <div className="w-full h-full border-2 border-amber-400/80 rounded-xl shadow-[0_0_25px_rgba(251,191,36,0.5)] animate-pulse" />
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 font-pixel font-black text-xs px-4 py-2 rounded-2xl shadow-2xl border-2 border-amber-200 animate-bounce tracking-widest uppercase flex items-center gap-2 whitespace-nowrap z-50">
                 <span>✨</span>
                 <span>ШЕДЕВР ГОТОВ! 🐾</span>
                 <span>✨</span>
