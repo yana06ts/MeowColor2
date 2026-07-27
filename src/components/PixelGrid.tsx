@@ -13,6 +13,7 @@ interface PixelGridProps {
   onMistake?: () => void;
   tutorialStep?: number | null;
   levelNumber?: number;
+  isCelebrating?: boolean;
 }
 
 interface Particle {
@@ -35,6 +36,7 @@ export function PixelGrid({
   onMistake,
   tutorialStep = null,
   levelNumber = 1,
+  isCelebrating = false,
 }: PixelGridProps) {
   const [zoom, setZoom] = useState<number>(100);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -42,6 +44,11 @@ export function PixelGrid({
   const [activeSpecialTool, setActiveSpecialTool] = useState<"pencil" | "wand" | "bomb">("pencil");
   const [particles, setParticles] = useState<Particle[]>([]);
   const [errorCell, setErrorCell] = useState<number | null>(null);
+  const [bombExplosion, setBombExplosion] = useState<{
+    row: number;
+    col: number;
+    colorHex: string;
+  } | null>(null);
 
   const [showWandTutorial, setShowWandTutorial] = useState<boolean>(false);
   const [showBombTutorial, setShowBombTutorial] = useState<boolean>(false);
@@ -313,6 +320,8 @@ export function PixelGrid({
       if (indicesToColor.length > 0) {
         onPixelColored(indicesToColor);
       }
+      setBombExplosion({ row: centerR, col: centerC, colorHex: selectedColorHex });
+      setTimeout(() => setBombExplosion(null), 850);
       setActiveSpecialTool("pencil");
       return;
     }
@@ -653,6 +662,48 @@ export function PixelGrid({
               );
             })}
           </div>
+
+          {/* Bomb Explosion Effect Overlay */}
+          {bombExplosion && (
+            <div
+              className="absolute pointer-events-none z-50 flex flex-col items-center justify-center animate-fade-in"
+              style={{
+                left: `${((bombExplosion.col + 0.5) / puzzle.width) * 100}%`,
+                top: `${((bombExplosion.row + 0.5) / puzzle.height) * 100}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div
+                className="absolute w-28 h-28 rounded-full border-4 animate-ping opacity-80 shadow-2xl"
+                style={{
+                  borderColor: bombExplosion.colorHex || "#f59e0b",
+                  backgroundColor: `${bombExplosion.colorHex}40` || "rgba(245, 158, 11, 0.25)",
+                }}
+              />
+              <div
+                className="absolute w-20 h-20 rounded-full border-2 border-white/90 animate-pulse shadow-xl flex items-center justify-center"
+                style={{
+                  backgroundColor: bombExplosion.colorHex || "#f59e0b",
+                }}
+              />
+              <div className="z-10 bg-slate-950 text-white font-pixel font-black text-[11px] px-2.5 py-1 rounded-xl shadow-2xl border-2 border-amber-300 animate-bounce tracking-wider whitespace-nowrap">
+                💥 БУМ! 💥
+              </div>
+            </div>
+          )}
+
+          {/* Victory Celebration Wave Overlay */}
+          {isCelebrating && (
+            <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden rounded-xl animate-fade-in">
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-400/25 via-rose-400/25 to-yellow-300/25 animate-pulse" />
+              <div className="w-full h-full border-4 border-amber-400 rounded-xl shadow-[inset_0_0_35px_rgba(251,191,36,0.7)] animate-pulse" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 font-pixel font-black text-xs px-4 py-2 rounded-2xl shadow-2xl border-2 border-amber-200 animate-bounce tracking-widest uppercase flex items-center gap-2">
+                <span>✨</span>
+                <span>ШЕДЕВР ГОТОВ! 🐾</span>
+                <span>✨</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

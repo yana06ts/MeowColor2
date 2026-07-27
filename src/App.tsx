@@ -293,6 +293,7 @@ export default function App() {
   const [victoryParticles, setVictoryParticles] = useState<StarParticle[]>([]);
   const [menuProgressPercent, setMenuProgressPercent] = useState<number | null>(null);
   const [menuParticles, setMenuParticles] = useState<StarParticle[]>([]);
+  const [isLevelCelebrating, setIsLevelCelebrating] = useState<boolean>(false);
 
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
   const [seenRoomUnlock, setSeenRoomUnlock] = useState<boolean>(() => {
@@ -302,11 +303,20 @@ export default function App() {
     return localStorage.getItem("meowcolor_tutorial_seen_achievements") === "true";
   });
   const [seenShopUnlock, setSeenShopUnlock] = useState<boolean>(() => {
-    return localStorage.getItem("meowcolor_tutorial_seen_shop") === "true";
+    return localStorage.getItem("meowcolor_tutorial_seen_shop",) === "true";
   });
   const [seenGachaUnlock, setSeenGachaUnlock] = useState<boolean>(() => {
     return localStorage.getItem("meowcolor_tutorial_seen_gacha") === "true";
   });
+
+  const savedPlacedCats = localStorage.getItem("meowcolor_placed_cats");
+  let placedCatsCount = 0;
+  try {
+    if (savedPlacedCats) {
+      placedCatsCount = JSON.parse(savedPlacedCats).length;
+    }
+  } catch (e) {}
+  const unplacedCatsCount = Math.max(0, gachaUnlockedCats.length - placedCatsCount);
 
   const isAchievementsLocked = completedPuzzles.length < 5; // Opens on level 6 (after 5 levels completed)
   const isShopLocked = completedPuzzles.length < 7; // Opens on level 8 (after 7 levels completed)
@@ -802,7 +812,9 @@ export default function App() {
     }
 
     // Select the first valid non-empty color option listed in the puzzle colors info
-    if (puzzle.colors.length > 0) {
+    if (tutorialStep === 1) {
+      setSelectedColorNumber(0);
+    } else if (puzzle.colors.length > 0) {
       setSelectedColorNumber(puzzle.colors[0].number);
     }
     SOUNDS.playPop(1.1);
@@ -916,6 +928,7 @@ export default function App() {
       // Clear partial progress state storage
       localStorage.removeItem(`meowcolor_progress_${puzzleId}`);
 
+      setIsLevelCelebrating(true);
       SOUNDS.playCompleteLevel();
       setTimeout(() => {
         SOUNDS.playMeow();
@@ -948,12 +961,14 @@ export default function App() {
 
       setAnimateProgressPercent(prevPercent);
 
-      setLevelCompleteModal({
-        active: true,
-        yarnEarned: finalReward,
-        prevPercent,
-        targetPercent,
-      });
+      setTimeout(() => {
+        setLevelCompleteModal({
+          active: true,
+          yarnEarned: finalReward,
+          prevPercent,
+          targetPercent,
+        });
+      }, 1000);
     }
   };
 
@@ -1485,6 +1500,7 @@ export default function App() {
                       selectedColorNumber={selectedColorNumber}
                       tutorialStep={tutorialStep}
                       levelNumber={currentLevelIndex + 1}
+                      isCelebrating={isLevelCelebrating}
                       onPixelColored={(idx) => {
                         handlePixelColored(idx);
                         // Advancing tutorial step 2
@@ -2706,13 +2722,26 @@ export default function App() {
                   onClick={() => handleTabClick("room")}
                   className={`flex-1 flex flex-col items-center justify-center transition-all cursor-pointer border-0 bg-transparent h-full relative ${isRoomLocked ? "opacity-60" : ""}`}
                 >
-                  {/* Newly Unlocked Pointer */}
+                  {/* Newly Unlocked Pointer or New Unplaced Cat Notification */}
                   {!isRoomLocked && !seenRoomUnlock && (
                     <div className="absolute -top-11 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-40 pointer-events-none select-none">
                       <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-pixel font-bold text-[7px] px-2 py-0.5 rounded-lg shadow-md border border-amber-300 whitespace-nowrap">
                         Жми сюда! 🏠
                       </div>
                       <span className="text-xs -mt-1 text-orange-400">▼</span>
+                    </div>
+                  )}
+                  {!isRoomLocked && seenRoomUnlock && unplacedCatsCount > 0 && activeTab !== "room" && (
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-40 pointer-events-none select-none">
+                      <div className="bg-gradient-to-r from-rose-500 to-amber-500 text-white font-pixel font-bold text-[7px] px-2 py-0.5 rounded-lg shadow-md border border-white whitespace-nowrap">
+                        Новый котик! 🐾
+                      </div>
+                      <span className="text-xs -mt-1 text-rose-500">▼</span>
+                    </div>
+                  )}
+                  {!isRoomLocked && unplacedCatsCount > 0 && (
+                    <div className="absolute top-1 right-2 bg-gradient-to-r from-rose-500 to-amber-500 text-white font-pixel font-black text-[7px] px-1.5 py-0.5 rounded-full shadow-md border border-white animate-pulse z-40">
+                      +{unplacedCatsCount}
                     </div>
                   )}
                   <div
@@ -3032,6 +3061,13 @@ export default function App() {
                             </span>
                           ))}
                         </div>
+                        {levelCompleteModal?.targetPercent === 100 && (
+                          <div className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 font-pixel font-black text-[8.5px] px-3 py-1.5 rounded-xl border border-amber-300 shadow-md animate-bounce flex items-center justify-center gap-1 my-1 uppercase">
+                            <span>👑</span>
+                            <span>СУПЕР-КОТ РАЗБЛОКИРОВАН!</span>
+                            <span>🐾</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -3042,6 +3078,8 @@ export default function App() {
                     onClick={() => {
                       const nextIndex =
                         (currentLevelIndex + 1) % LEVEL_SEQUENCE.length;
+                      const nextLvl = LEVEL_SEQUENCE[nextIndex];
+                      const nextPuzzle = nextLvl ? (PUZZLES.find(p => p.id === nextLvl.puzzleId) || ALL_PUZZLES.find(p => p.id === nextLvl.puzzleId)) : null;
 
                       // Advance to next level index
                       setCurrentLevelIndex(nextIndex);
@@ -3057,7 +3095,18 @@ export default function App() {
                       // Close complete modal and return to main levels list/menu
                       setLevelCompleteModal(null);
                       setSelectedPuzzle(null);
+                      setIsLevelCelebrating(false);
                       SOUNDS.playPop(1.1);
+
+                      // If next level is a Super Cat, trigger intro immediately!
+                      if (nextLvl && nextLvl.isSuper && nextPuzzle) {
+                        setShowSuperCatIntro({
+                          active: true,
+                          puzzle: nextPuzzle,
+                          nextIndex: nextIndex,
+                        });
+                        SOUNDS.playCompleteLevel();
+                      }
                     }}
                     className="w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 border-2 border-amber-500 p-3 font-pixel text-[9px] text-slate-950 rounded-2xl shadow-[0_4px_12px_rgba(245,158,11,0.3)] hover:scale-102 hover:from-amber-300 hover:to-orange-300 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold flex items-center justify-center gap-1"
                   >
@@ -3120,6 +3169,57 @@ export default function App() {
                     <span>НАЧАТЬ РИСОВАТЬ!</span>
                     <span>🎨🐾</span>
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Gacha / Lucky Box Reward Modal */}
+            {rolledReward && (
+              <div className="absolute inset-0 z-50 bg-[#000000a0] backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-gradient-to-b from-[#FFFDF6] via-[#FFFBF0] to-[#FFF6DC] rounded-[2.5rem] p-6 shadow-2xl border-4 border-amber-400 max-w-sm w-full text-center relative select-none animate-fade-in text-[#5C3A21]">
+                  <div className="w-20 h-20 bg-gradient-to-tr from-amber-300 via-orange-300 to-rose-300 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white shadow-lg animate-bounce">
+                    <span className="text-4xl">{rolledReward.puzzle.image || "🐱"}</span>
+                  </div>
+                  <h2 className="text-xs font-pixel font-black text-amber-600 uppercase tracking-wide mb-1">
+                    {rolledReward.isNew ? "🎉 НОВАЯ НАХОДКА! 🎉" : "✨ ДУБЛИКАТ! ✨"}
+                  </h2>
+                  <h3 className="text-lg font-pixel text-slate-800 font-extrabold uppercase mb-2">
+                    {rolledReward.puzzle.name}
+                  </h3>
+                  <div className="bg-amber-100/90 p-3 rounded-2xl border border-amber-200/80 mb-5 text-left">
+                    <p className="text-[10px] font-pixel text-amber-900 leading-relaxed font-semibold">
+                      {rolledReward.isCat
+                        ? rolledReward.isNew
+                          ? "Ура! Новый пушистый котик теперь живет в вашем Домике! 🐱🏠"
+                          : "Повторка! Засчитан дубликат котика для прокачки +1 🌟"
+                        : rolledReward.isNew
+                        ? "Новая картина добавлена в вашу коллекцию уровней! 🖼️"
+                        : "Повторка! Вам начислено +150 обычной пряжи! 🧶"}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {rolledReward.isCat && (
+                      <button
+                        onClick={() => {
+                          setRolledReward(null);
+                          setActiveTab("room");
+                          SOUNDS.playPop(1.1);
+                        }}
+                        className="w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 border-2 border-amber-500 p-3 font-pixel text-[9px] text-slate-950 rounded-2xl shadow-md hover:scale-102 active:scale-95 duration-100 uppercase font-extrabold flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        🐾 ПОСЕТИТЬ ДОМИК 🏠
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setRolledReward(null);
+                        SOUNDS.playPop(1.0);
+                      }}
+                      className="w-full bg-slate-100 hover:bg-slate-200 border-2 border-slate-200 p-2.5 font-pixel text-[8.5px] text-slate-700 rounded-2xl uppercase font-bold flex items-center justify-center gap-1 cursor-pointer active:scale-95"
+                    >
+                      ОТКРЫТЬ ЕЩЁ 🎁
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
