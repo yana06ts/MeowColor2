@@ -812,7 +812,7 @@ export default function App() {
     }
 
     // Select the first valid non-empty color option listed in the puzzle colors info
-    if (tutorialStep === 1) {
+    if (tutorialStep === 1 || puzzle.id === "toy_yarn_ball" || !localStorage.getItem("meowcolor_tutorial_coloring")) {
       setSelectedColorNumber(0);
     } else if (puzzle.colors.length > 0) {
       setSelectedColorNumber(puzzle.colors[0].number);
@@ -1100,8 +1100,9 @@ export default function App() {
         (p) => p.id === firstLvl.puzzleId,
       );
       if (firstPuzzle) {
-        handleSelectPuzzle(firstPuzzle);
         setTutorialStep(1);
+        handleSelectPuzzle(firstPuzzle);
+        setSelectedColorNumber(0);
       }
     }
   }, [gameStarted, selectedPuzzle, completedPuzzles, allAvailablePuzzles]);
@@ -1241,8 +1242,9 @@ export default function App() {
                       (p) => p.id === firstLvl.puzzleId,
                     );
                     if (firstPuzzle) {
-                      handleSelectPuzzle(firstPuzzle);
                       setTutorialStep(1);
+                      handleSelectPuzzle(firstPuzzle);
+                      setSelectedColorNumber(0);
                     }
                   }
                 }}
@@ -1578,7 +1580,7 @@ export default function App() {
 
                     <div className="flex gap-3 overflow-x-auto py-2.5 px-3 justify-start sm:justify-center no-scrollbar">
                       {selectedPuzzle.colors.map((color) => {
-                        const isSelected = color.number === selectedColorNumber;
+                        const isSelected = color.number === selectedColorNumber && tutorialStep !== 1;
 
                         const totalTarget = currentProgress.filter(
                           (c) => c.number === color.number,
@@ -3081,7 +3083,7 @@ export default function App() {
                       const nextIndex =
                         (currentLevelIndex + 1) % LEVEL_SEQUENCE.length;
                       const nextLvl = LEVEL_SEQUENCE[nextIndex];
-                      const nextPuzzle = nextLvl ? (PUZZLES.find(p => p.id === nextLvl.puzzleId) || ALL_PUZZLES.find(p => p.id === nextLvl.puzzleId)) : null;
+                      const nextPuzzle = nextLvl ? allAvailablePuzzles.find(p => p.id === nextLvl.puzzleId) : null;
 
                       // Advance to next level index
                       setCurrentLevelIndex(nextIndex);
