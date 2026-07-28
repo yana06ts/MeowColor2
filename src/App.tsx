@@ -1001,32 +1001,33 @@ export default function App() {
   }, [achievementsList, claimedAchievements]);
 
   useEffect(() => {
-    if (!achievementToast) {
-      const newlyUnlocked = achievementsList.find((acc) => {
-        const isCompleted = acc.check();
-        const isClaimed = claimedAchievements.includes(acc.id);
-        const isNotified = notifiedAchievements.includes(acc.id);
-        return isCompleted && !isClaimed && !isNotified;
-      });
+    const newlyUnlocked = achievementsList.find((acc) => {
+      const isCompleted = acc.check();
+      const isClaimed = claimedAchievements.includes(acc.id);
+      const isNotified = notifiedAchievements.includes(acc.id);
+      return isCompleted && !isClaimed && !isNotified;
+    });
 
-      if (newlyUnlocked) {
-        setAchievementToast(newlyUnlocked);
-        const nextNotified = [...notifiedAchievements, newlyUnlocked.id];
-        setNotifiedAchievements(nextNotified);
-        localStorage.setItem(
-          "meowcolor_notified_achievements",
-          JSON.stringify(nextNotified),
-        );
-        SOUNDS.playCompleteLevel();
-
-        const timer = setTimeout(() => {
-          setAchievementToast(null);
-        }, 3000);
-
-        return () => clearTimeout(timer);
-      }
+    if (newlyUnlocked) {
+      setAchievementToast(newlyUnlocked);
+      const nextNotified = [...notifiedAchievements, newlyUnlocked.id];
+      setNotifiedAchievements(nextNotified);
+      localStorage.setItem(
+        "meowcolor_notified_achievements",
+        JSON.stringify(nextNotified),
+      );
+      SOUNDS.playCompleteLevel();
     }
-  }, [achievementsList, claimedAchievements, notifiedAchievements, achievementToast]);
+  }, [achievementsList, claimedAchievements, notifiedAchievements]);
+
+  useEffect(() => {
+    if (achievementToast) {
+      const timer = setTimeout(() => {
+        setAchievementToast(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [achievementToast]);
 
   const updatePowerupsVal = (newPowerups: typeof powerups) => {
     setPowerups(newPowerups);
@@ -2087,22 +2088,42 @@ export default function App() {
                                       setTutorialStep(null);
                                     }
 
-                                    handleSelectPuzzle(currentPuzzle);
+                                    if (currentLvl.isSuper) {
+                                      setShowSuperCatIntro({
+                                        active: true,
+                                        puzzle: currentPuzzle,
+                                        nextIndex: currentLevelIndex,
+                                      });
+                                      SOUNDS.playCompleteLevel();
+                                    } else {
+                                      handleSelectPuzzle(currentPuzzle);
+                                    }
                                   }}
                                   className={
-                                    currentPuzzle.difficulty === "Expert"
-                                      ? "w-full bg-gradient-to-r from-red-500 via-rose-500 to-red-600 hover:from-red-400 hover:to-rose-400 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-red-500/25 border-b-4 border-red-800 transition-all duration-200 active:scale-95 cursor-pointer font-pixel text-[10px] uppercase tracking-wider animate-pulse"
-                                      : "w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg border-b-4 border-emerald-600 transition-all duration-200 active:scale-95 cursor-pointer font-pixel text-[10px] uppercase tracking-wider"
+                                    currentLvl.isSuper
+                                      ? "w-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:brightness-110 text-slate-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(245,158,11,0.5)] border-b-4 border-amber-600 transition-all duration-200 active:scale-95 cursor-pointer font-pixel text-[10.5px] uppercase tracking-wider animate-pulse ring-2 ring-amber-300/80"
+                                      : currentPuzzle.difficulty === "Expert"
+                                        ? "w-full bg-gradient-to-r from-red-500 via-rose-500 to-red-600 hover:from-red-400 hover:to-rose-400 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-red-500/25 border-b-4 border-red-800 transition-all duration-200 active:scale-95 cursor-pointer font-pixel text-[10px] uppercase tracking-wider animate-pulse"
+                                        : "w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg border-b-4 border-emerald-600 transition-all duration-200 active:scale-95 cursor-pointer font-pixel text-[10px] uppercase tracking-wider"
                                   }
                                 >
-                                  {currentPuzzle.difficulty === "Expert" ? (
-                                    <span className="animate-bounce">🔥</span>
+                                  {currentLvl.isSuper ? (
+                                    <>
+                                      <span className="animate-bounce text-base">👑</span>
+                                      <span>СУПЕР-КОТ • Уровень {currentLevelIndex + 1}</span>
+                                      <span className="animate-bounce text-base">👑</span>
+                                    </>
+                                  ) : currentPuzzle.difficulty === "Expert" ? (
+                                    <>
+                                      <span className="animate-bounce">🔥</span>
+                                      <span>Уровень {currentLevelIndex + 1} • {diffLabel}</span>
+                                      <span className="animate-bounce">🔥</span>
+                                    </>
                                   ) : (
-                                    <Play className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
-                                  )}
-                                  Уровень {currentLevelIndex + 1} • {diffLabel}
-                                  {currentPuzzle.difficulty === "Expert" && (
-                                    <span className="animate-bounce">🔥</span>
+                                    <>
+                                      <Play className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+                                      <span>Уровень {currentLevelIndex + 1} • {diffLabel}</span>
+                                    </>
                                   )}
                                 </button>
                               </div>
@@ -3476,48 +3497,56 @@ export default function App() {
                     ✨
                   </div>
 
-                  <div className="w-16 h-16 bg-gradient-to-tr from-amber-400 to-rose-400 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-amber-300 shadow-lg animate-bounce">
-                    <Crown className="w-9 h-9 text-slate-900" />
+                  <div className="w-20 h-20 bg-gradient-to-tr from-amber-300 via-yellow-400 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.5)] animate-bounce">
+                    <Crown className="w-10 h-10 text-slate-950 fill-amber-950" />
                   </div>
 
-                  <h2 className="text-sm font-pixel text-amber-400 uppercase mb-2 leading-tight tracking-wide">
+                  <h2 className="text-xs font-pixel font-black text-amber-400 uppercase mb-1 leading-tight tracking-wider">
                     👑 СУПЕР-УРОВЕНЬ! 👑
                   </h2>
-                  <h3 className="text-lg font-pixel text-white font-black uppercase mb-3 truncate">
+                  <h3 className="text-base font-pixel text-yellow-100 font-extrabold uppercase mb-3 truncate">
                     {showSuperCatIntro.puzzle.name}
                   </h3>
 
-                  <div className="bg-slate-800/80 rounded-2xl p-4 border border-amber-400/30 mb-5 text-left">
-                    <p className="text-[9.5px] text-amber-100 font-semibold leading-normal font-pixel">
-                      Вы прошли все обычные уровни главы! Настало время для
-                      финального испытания.
+                  <div className="bg-amber-950/60 rounded-2xl p-3.5 border border-amber-400/40 mb-4 text-left">
+                    <p className="text-[10px] text-amber-100 font-semibold leading-relaxed font-pixel">
+                      Шкала главы заполнена! 🎉 Настало время нарисовать особенного Супер-Котика!
                     </p>
-                    <p className="text-[9.5px] text-rose-300 font-bold mt-2 leading-normal flex items-start gap-1 font-pixel">
+                    <p className="text-[9.5px] text-amber-200/90 font-medium mt-2 leading-relaxed flex items-start gap-1 font-pixel">
                       <span>🐾</span>
                       <span>
-                        Нарисуйте этого легендарного Супер-Котика, чтобы он
-                        навсегда поселился в вашем домике и приносил больше
-                        пряжи!
+                        Нарисуйте его, чтобы он поселился в вашем Кото-Домике и приносил больше пряжи!
                       </span>
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setCurrentLevelIndex(showSuperCatIntro.nextIndex);
-                      localStorage.setItem(
-                        "meowcolor_level_index",
-                        showSuperCatIntro.nextIndex.toString(),
-                      );
-                      handleSelectPuzzle(showSuperCatIntro.puzzle);
-                      setShowSuperCatIntro(null);
-                      SOUNDS.playPop(1.15);
-                    }}
-                    className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-rose-400 border-2 border-amber-300 p-3 font-pixel text-[10px] text-slate-950 rounded-2xl shadow-lg hover:brightness-110 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold flex items-center justify-center gap-2"
-                  >
-                    <span>НАЧАТЬ РИСОВАТЬ!</span>
-                    <span>🎨🐾</span>
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => {
+                        setCurrentLevelIndex(showSuperCatIntro.nextIndex);
+                        localStorage.setItem(
+                          "meowcolor_level_index",
+                          showSuperCatIntro.nextIndex.toString(),
+                        );
+                        handleSelectPuzzle(showSuperCatIntro.puzzle);
+                        setShowSuperCatIntro(null);
+                        SOUNDS.playPop(1.15);
+                      }}
+                      className="w-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 border-2 border-amber-200 p-3.5 font-pixel text-[10.5px] text-slate-950 rounded-2xl shadow-lg hover:brightness-110 active:scale-95 duration-100 cursor-pointer uppercase font-extrabold flex items-center justify-center gap-2"
+                    >
+                      <span>НАРИСОВАТЬ СУПЕР-КОТА!</span>
+                      <span>👑🎨</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSuperCatIntro(null);
+                        SOUNDS.playPop(0.9);
+                      }}
+                      className="w-full bg-white/10 hover:bg-white/20 text-amber-200 font-bold py-2 rounded-xl text-[9px] font-pixel cursor-pointer transition-all border border-amber-400/20 uppercase"
+                    >
+                      Позже 🐾
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
