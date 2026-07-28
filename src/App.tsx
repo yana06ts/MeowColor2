@@ -78,8 +78,8 @@ const DAILY_QUESTS: DailyQuest[] = [
   },
   {
     id: "paint_picture",
-    title: "Юный Художник 🎨",
-    desc: "Раскрась 1 любой рисунок по номерам.",
+    title: "Пройди один уровень 🎨",
+    desc: "Заверши 1 любой рисунок полностью.",
     icon: "🎨",
     target: 1,
     rewardType: "coupons",
@@ -112,9 +112,9 @@ const DAILY_QUESTS: DailyQuest[] = [
   {
     id: "color_cells",
     title: "Магия Цвета ✨",
-    desc: "Закрась хотя бы 15 ячеек на холсте.",
+    desc: "Закрась хотя бы 100 ячеек на холсте.",
     icon: "✨",
-    target: 15,
+    target: 100,
     rewardType: "crystal",
     rewardAmount: 1,
     actionTab: "levels",
@@ -937,22 +937,26 @@ export default function App() {
         },
       },
       {
-        id: "cat_level_2",
-        title: "Заботливый Опекун ⭐",
-        desc: "Прокачай любого котика до 2-го уровня или выше.",
-        gYarnReward: 8,
-        check: () => {
-          return Object.values(catLevels).some((lvl) => (lvl as number) >= 2);
-        },
+        id: "puzzles_completed_5",
+        title: "Мастер Кисти 🎨",
+        desc: "Заверши 5 любых картинок по номерам.",
+        gYarnReward: 10,
+        check: () => completedPuzzles.length >= 5,
       },
       {
-        id: "cat_level_5",
-        title: "Кошачий Владыка 👑",
-        desc: "Достигни максимального 5-го уровня на котике.",
-        gYarnReward: 15,
-        check: () => {
-          return Object.values(catLevels).some((lvl) => (lvl as number) >= 5);
-        },
+        id: "daily_quests_completed",
+        title: "Исполнитель Желаний 📋",
+        desc: "Забери награду за любое ежедневное задание.",
+        gYarnReward: 5,
+        check: () => dailyQuestsClaimed.length >= 1,
+      },
+      {
+        id: "gacha_master",
+        title: "Любитель Сюрпризов 🎁",
+        desc: "Разблокируй хотя бы 3 награды в Коробке Удачи.",
+        gYarnReward: 10,
+        check: () =>
+          gachaUnlockedCats.length + unlockedGachaPuzzleIds.length >= 3,
       },
       {
         id: "furniture_buy",
@@ -981,23 +985,14 @@ export default function App() {
         gYarnReward: 10,
         check: () => yarnCount >= 1000,
       },
-      {
-        id: "three_cats",
-        title: "Кошачий Приют 🐈‍⬛",
-        desc: "Собери коллекцию из 3 завершённых картин с котиками.",
-        gYarnReward: 10,
-        check: () => {
-          const allPuzzles = [...PUZZLE_TEMPLATES, ...GACHA_EXCLUSIVE_PUZZLES];
-          return (
-            completedPuzzles.filter((pId) => {
-              const templ = allPuzzles.find((t) => t.id === pId);
-              return templ && templ.category === "cats";
-            }).length >= 3
-          );
-        },
-      },
     ];
-  }, [completedPuzzles, catLevels, yarnCount]);
+  }, [
+    completedPuzzles,
+    yarnCount,
+    dailyQuestsClaimed,
+    gachaUnlockedCats,
+    unlockedGachaPuzzleIds,
+  ]);
 
   const hasUnclaimedAchievements = useMemo(() => {
     return achievementsList.some(
@@ -1926,34 +1921,34 @@ export default function App() {
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col overflow-hidden relative">
-                  {/* FLOATING DAILY QUESTS ICON ON THE LEFT SIDE OF MAIN SCREEN */}
-                  <button
-                    id="main-daily-quests-btn"
-                    onClick={() => {
-                      setShowDailyQuestsModal(true);
-                      SOUNDS.playPop(1.1);
-                    }}
-                    className="absolute top-3 left-3 z-30 flex flex-col items-center group cursor-pointer active:scale-95 transition-transform select-none"
-                    title="Ежедневные задания 📋"
-                  >
-                    <div className="relative w-11 h-11 bg-gradient-to-tr from-amber-400 via-orange-400 to-rose-400 p-0.5 rounded-2xl shadow-md border-2 border-white flex items-center justify-center animate-bounce-slow">
-                      <div className="w-full h-full bg-amber-50 rounded-[14px] flex items-center justify-center">
-                        <span className="text-xl">📋</span>
-                      </div>
-                      {hasUnclaimedDailyQuests && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white font-pixel font-black text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce shadow-md border-2 border-white">
-                          !
-                        </span>
-                      )}
-                    </div>
-                    <span className="mt-0.5 bg-slate-900/80 text-amber-100 font-pixel font-bold text-[7.5px] px-1.5 py-0.5 rounded-full shadow-md backdrop-blur-xs uppercase tracking-tight">
-                      Задания
-                    </span>
-                  </button>
-
                   {/* TAB 1: LEVELS SCREEN */}
                   {activeTab === "levels" && (
                     <div className="flex-1 flex flex-col overflow-hidden bg-[#FFFBF0] animate-fade-in relative">
+                      {/* FLOATING DAILY QUESTS ICON ON THE LEFT SIDE OF MAIN SCREEN */}
+                      <button
+                        id="main-daily-quests-btn"
+                        onClick={() => {
+                          setShowDailyQuestsModal(true);
+                          SOUNDS.playPop(1.1);
+                        }}
+                        className="absolute top-16 left-3 z-30 flex flex-col items-center group cursor-pointer active:scale-95 transition-transform select-none"
+                        title="Ежедневные задания 📋"
+                      >
+                        <div className="relative w-11 h-11 bg-gradient-to-tr from-amber-400 via-orange-400 to-rose-400 p-0.5 rounded-2xl shadow-md border-2 border-white flex items-center justify-center animate-bounce-slow">
+                          <div className="w-full h-full bg-amber-50 rounded-[14px] flex items-center justify-center">
+                            <span className="text-xl">📋</span>
+                          </div>
+                          {hasUnclaimedDailyQuests && (
+                            <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white font-pixel font-black text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce shadow-md border-2 border-white">
+                              !
+                            </span>
+                          )}
+                        </div>
+                        <span className="mt-0.5 bg-slate-900/80 text-amber-100 font-pixel font-bold text-[7.5px] px-1.5 py-0.5 rounded-full shadow-md backdrop-blur-xs uppercase tracking-tight">
+                          Задания
+                        </span>
+                      </button>
+
                       {/* Chapter progress bar */}
                       {(() => {
                         const currentLvl =
@@ -1991,7 +1986,7 @@ export default function App() {
                         const displayPercent = menuProgressPercent !== null ? menuProgressPercent : percent;
 
                         return (
-                          <div className="ml-14 mr-4 mt-3 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-50 border-2 border-amber-200 rounded-3xl p-3 flex flex-col gap-1.5 shrink-0 select-none shadow-sm relative overflow-visible">
+                          <div className="mx-4 mt-3 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-50 border-2 border-amber-200 rounded-3xl p-3 flex flex-col gap-1.5 shrink-0 select-none shadow-sm relative overflow-visible">
                             <div className="flex justify-between items-center text-[9.5px] font-pixel text-amber-900 font-black uppercase">
                               <span className="flex items-center gap-1">
                                 👑 Прогресс Главы:{" "}
@@ -2245,16 +2240,6 @@ export default function App() {
                           <p className="text-[8.5px] text-slate-400 leading-none mt-1.5 font-semibold">
                             Купоны: {gachaTickets} 🎟️ • Пряжа: {yarnCount} 🧶
                           </p>
-
-                          {/* Info card describing drop contents */}
-                          <div className="mt-2.5 bg-amber-50/80 border border-amber-200/60 rounded-xl p-2 text-center w-full">
-                            <span className="text-[8px] font-pixel text-amber-900 font-extrabold uppercase tracking-tight block">
-                              Что внутри коробки? 🎁
-                            </span>
-                            <p className="text-[7.5px] text-amber-800/80 mt-0.5 leading-tight font-medium">
-                              🛋️ Новый Декор • ⚡ Бустеры • 🧶 Пряжа • 🎟️ Купоны • 💎 Кристаллы (редко!)
-                            </p>
-                          </div>
                         </div>
 
                         {/* Highly aesthetic animated Gift Box Container */}
