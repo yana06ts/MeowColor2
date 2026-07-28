@@ -401,7 +401,7 @@ export default function App() {
   } catch (e) {}
   const unplacedCatsCount = Math.max(0, gachaUnlockedCats.length - placedCatsCount);
 
-  const isAchievementsLocked = completedPuzzles.length < 5; // Opens on level 6 (after 5 levels completed)
+  const isAchievementsLocked = completedPuzzles.length < 1; // Opens on level 2 (after completing 1 level / tutorial)
   const isShopLocked = completedPuzzles.length < 7; // Opens on level 8 (after 7 levels completed)
   const isGachaLocked = completedPuzzles.length < 9; // Opens on level 10 (after 9 levels completed)
   const isRoomLocked = completedPuzzles.length < 4; // Opens on level 5 (after 4 levels completed)
@@ -924,6 +924,13 @@ export default function App() {
   const achievementsList = useMemo(() => {
     return [
       {
+        id: "tutorial_completed",
+        title: "Пройти Обучение 🎓",
+        desc: "Заверши первый уровень (обучение) и начни своё пушистое приключение!",
+        gYarnReward: 5,
+        check: () => completedPuzzles.length >= 1,
+      },
+      {
         id: "first_cat",
         title: "Первый Мурка 🐱",
         desc: "Раскрась первого котика по номерам.",
@@ -1423,7 +1430,7 @@ export default function App() {
       SOUNDS.playError();
       setLockedTabReason({
         title: "Достижения закрыты 🔒",
-        desc: "Пройди 5 уровней (достигни 6 уровня), чтобы разблокировать Достижения! 🏆",
+        desc: "Пройди первый уровень (обучение), чтобы разблокировать Достижения! 🏆",
       });
       return;
     }
