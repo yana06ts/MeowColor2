@@ -476,10 +476,20 @@ export function CatRoom({
     placedCatsRef.current = placedCats;
   }, [placedCats]);
 
-  // Filters cats completed by user OR unlocked through gacha box!
-  const unlockedCats = [...puzzleTemplates, ...GACHA_EXCLUSIVE_PUZZLES].filter(
-    (p) => p.category === "cats" && (completedPuzzles.includes(p.id) || gachaUnlockedCats.includes(p.id))
-  );
+  // Filters cats completed by user OR unlocked through gacha box (deduplicated by ID)
+  const unlockedCats = React.useMemo(() => {
+    const all = [...puzzleTemplates, ...GACHA_EXCLUSIVE_PUZZLES];
+    const map = new Map<string, PuzzleTemplate>();
+    all.forEach((p) => {
+      if (
+        p.category === "cats" &&
+        (completedPuzzles.includes(p.id) || gachaUnlockedCats.includes(p.id))
+      ) {
+        map.set(p.id, p);
+      }
+    });
+    return Array.from(map.values());
+  }, [puzzleTemplates, completedPuzzles, gachaUnlockedCats]);
 
   const getToyPixelIcon = (puzzleId: string) => {
     const template = puzzleTemplates.find((p) => p.id === puzzleId);

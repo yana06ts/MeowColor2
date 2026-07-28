@@ -1021,7 +1021,7 @@ export default function App() {
 
         const timer = setTimeout(() => {
           setAchievementToast(null);
-        }, 3500);
+        }, 3000);
 
         return () => clearTimeout(timer);
       }
@@ -1937,7 +1937,7 @@ export default function App() {
                           setShowDailyQuestsModal(true);
                           SOUNDS.playPop(1.1);
                         }}
-                        className="absolute top-28 left-3 z-30 flex flex-col items-center group cursor-pointer active:scale-95 transition-transform select-none"
+                        className="absolute top-44 left-3 z-30 flex flex-col items-center group cursor-pointer active:scale-95 transition-transform select-none"
                         title="Ежедневные задания 📋"
                       >
                         <div className="relative w-11 h-11 bg-gradient-to-tr from-amber-400 via-orange-400 to-rose-400 p-0.5 rounded-2xl shadow-md border-2 border-white flex items-center justify-center animate-bounce-slow">
@@ -2087,16 +2087,7 @@ export default function App() {
                                       setTutorialStep(null);
                                     }
 
-                                    if (currentLvl.isSuper) {
-                                      setShowSuperCatIntro({
-                                        active: true,
-                                        puzzle: currentPuzzle,
-                                        nextIndex: currentLevelIndex,
-                                      });
-                                      SOUNDS.playCompleteLevel();
-                                    } else {
-                                      handleSelectPuzzle(currentPuzzle);
-                                    }
+                                    handleSelectPuzzle(currentPuzzle);
                                   }}
                                   className={
                                     currentPuzzle.difficulty === "Expert"
@@ -3461,13 +3452,8 @@ export default function App() {
                       localStorage.setItem("meowcolor_tutorial_coloring", "completed");
                       SOUNDS.playPop(1.1);
 
-                      // If next level is a Super Cat, trigger intro immediately!
-                      if (nextLvl && nextLvl.isSuper && nextPuzzle) {
-                        setShowSuperCatIntro({
-                          active: true,
-                          puzzle: nextPuzzle,
-                          nextIndex: nextIndex,
-                        });
+                      // If next level is a Super Cat, play sound effect
+                      if (nextLvl && nextLvl.isSuper) {
                         SOUNDS.playCompleteLevel();
                       }
                     }}
@@ -3871,11 +3857,7 @@ export default function App() {
             {achievementToast && (
               <div
                 id="achievement-toast-notification"
-                onClick={() => {
-                  setShowAchievementsModal(true);
-                  SOUNDS.playPop(1.0);
-                }}
-                className="absolute top-4 left-4 right-4 z-50 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 p-2.5 px-3.5 rounded-2xl shadow-xl border-2 border-amber-300/90 flex items-center gap-2.5 cursor-pointer animate-fade-in select-none active:scale-95 transition-all"
+                className="absolute top-4 left-4 right-4 z-50 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 p-2.5 px-3.5 rounded-2xl shadow-xl border-2 border-amber-300/90 flex items-center gap-2.5 animate-fade-in select-none pointer-events-none transition-all"
               >
                 <div className="w-8 h-8 bg-white/90 rounded-xl flex items-center justify-center shrink-0 shadow-xs">
                   <span className="text-lg">🏆</span>
