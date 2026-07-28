@@ -3370,87 +3370,20 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Chapter Progress Bar (Requirement 4) */}
-                  {selectedPuzzle && (() => {
-                    const currentLvl = LEVEL_SEQUENCE.find(item => item.puzzleId === selectedPuzzle.id) || LEVEL_SEQUENCE[currentLevelIndex] || LEVEL_SEQUENCE[0];
-                    if (!currentLvl) return null;
-
-                    const cycleLevels = LEVEL_SEQUENCE.filter(
-                      (item) => item.cycleNumber === currentLvl.cycleNumber,
-                    );
-                    const regularLevels = cycleLevels.filter(
-                      (item) => !item.isSuper,
-                    );
-                    const completedRegular = regularLevels.filter((item) =>
-                      completedPuzzles.includes(item.puzzleId) || item.puzzleId === selectedPuzzle.id
-                    ).length;
-                    const totalRegular = regularLevels.length;
-
-                    // Super cat template info
-                    const superCatLvl = cycleLevels.find(
-                      (item) => item.isSuper,
-                    );
-                    const superCatTemplate = allAvailablePuzzles.find(
-                      (p) => p.id === superCatLvl?.puzzleId,
-                    );
-                    const catName = superCatTemplate
-                      ? superCatTemplate.name
-                          .replace(/[🐾🐈‍⬛📦👑💙🧡]/g, "")
-                          .trim()
-                      : "Супер-Кота";
-
-                    return (
-                      <div className="mb-4 bg-amber-500/10 border-2 border-amber-200 rounded-2xl p-2.5 flex flex-col gap-1.5 text-left select-none relative overflow-visible shadow-xs">
-                        <div className="flex justify-between items-center text-[8px] font-pixel text-amber-800 font-bold uppercase">
-                          <span className="flex items-center gap-1">🐾 Прогресс главы ({catName}):</span>
-                          <span className="bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded-full text-[7.5px] font-black shadow-xs">
-                            {completedRegular}/{totalRegular}
-                          </span>
-                        </div>
-                        <div className="relative w-full h-2.5 mt-1">
-                          <div className="w-full bg-amber-100 h-full rounded-full border border-amber-200 relative flex items-center p-0.5 shadow-inner overflow-hidden">
-                            <div
-                              className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 h-full rounded-full shadow-2xs"
-                              style={{ width: `${animateProgressPercent}%` }}
-                            />
-                          </div>
-
-                          {/* Floating star tip */}
-                          <div
-                            className="absolute text-[10px] pointer-events-none transform -translate-y-1/2 top-1/2 transition-all duration-75"
-                            style={{ left: `calc(${animateProgressPercent}% - 5px)` }}
-                          >
-                            ⭐
-                          </div>
-
-                          {/* RENDER VICTORY PARTICLES HERE */}
-                          {victoryParticles.map((p) => (
-                            <span
-                              key={p.id}
-                              className="absolute pointer-events-none select-none text-xs"
-                              style={{
-                                left: `calc(${p.x}% - 6px)`,
-                                top: `calc(${p.y}% - 6px)`,
-                                transform: `scale(${p.scale})`,
-                                opacity: p.alpha,
-                                zIndex: 50,
-                                textShadow: `0 0 4px ${p.color}`,
-                              }}
-                            >
-                              {p.char}
-                            </span>
-                          ))}
-                        </div>
-                        {levelCompleteModal?.targetPercent === 100 && (
-                          <div className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 font-pixel font-black text-[8.5px] px-3 py-1.5 rounded-xl border border-amber-300 shadow-md animate-bounce flex items-center justify-center gap-1 my-1 uppercase">
-                            <span>👑</span>
-                            <span>СУПЕР-КОТ РАЗБЛОКИРОВАН!</span>
-                            <span>🐾</span>
-                          </div>
-                        )}
+                  {/* Chapter Bar Filled Notification Banner on Victory Screen */}
+                  {levelCompleteModal?.targetPercent === 100 && (
+                    <div className="mb-4 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 text-slate-950 font-pixel rounded-2xl p-3 border-2 border-amber-300 shadow-lg animate-bounce text-center select-none relative overflow-hidden">
+                      <div className="absolute -top-6 -right-6 w-16 h-16 bg-white/30 rounded-full blur-md" />
+                      <div className="flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wide">
+                        <span>👑</span>
+                        <span>ШКАЛА ГЛАВЫ 100%!</span>
+                        <span>🎉</span>
                       </div>
-                    );
-                  })()}
+                      <p className="text-[9.5px] text-slate-950 font-extrabold mt-1 leading-tight">
+                        Прогресс заполнен! Следующий уровень — СУПЕР-КОТ! 🐾
+                      </p>
+                    </div>
+                  )}
 
                   {/* Claim Reward Button (with +yarn reward and returns to main menu) */}
                   <button

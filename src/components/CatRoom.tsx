@@ -179,36 +179,42 @@ export function CatRoom({
   });
 
   const SHOP_ITEMS = [
-    { id: "cushion", name: "Королевский диван 🛋️", price: 220, description: "Просторный мягкий диван для всей кошачьей банды. Уют и комфорт! 🛋️" },
-    { id: "golden_fish", name: "Миска с карасями 🥣", price: 150, description: "Полная миска свежих карасей для сытого мурчания. Вкуснятина! 🥣" },
-    { id: "tunnel", name: "Коробка мечты 📦", price: 280, description: "Простая коробка — идеальный замок котика. Коробки нравятся всем! 📦" },
-    { id: "luxury_tower", name: "Кото-Небоскрёб 🏰", price: 650, description: "Башня-лежанка с мягкими гамаками. Идеальный обзор сверху! 🏰" },
-    { id: "cactus_scratch", name: "Кактус-когтеточка 🌵", crystalPrice: 35, description: "Стильная когтеточка в форме зеленого кактуса. Мяу-стиль! 🌵" },
-    { id: "aquarium", name: "Аквариум 🐠", crystalPrice: 20, description: "Подводный мир с рыбками прямо в комнате. Котики будут заворожены! 🐠" },
+    { id: "cushion", name: "Королевский диван 🛋️", price: 220, description: "Просторный мягкий диван для всей кошачьей банды. Уют и комфорт! 🛋️", unlockLevel: 4, unlockText: "Доступен с 4 уровня" },
+    { id: "golden_fish", name: "Миска с карасями 🥣", price: 150, description: "Полная миска свежих карасей для сытого мурчания. Вкуснятина! 🥣", unlockLevel: 5, unlockText: "Доступно с 5 уровня" },
+    { id: "tunnel", name: "Коробка мечты 📦", price: 280, description: "Простая коробка — идеальный замок котика. Коробки нравятся всем! 📦", unlockLevel: 6, unlockText: "Разблокируется с 6 уровня" },
+    { id: "luxury_tower", name: "Кото-Небоскрёб 🏰", price: 650, description: "Башня-лежанка с мягкими гамаками. Идеальный обзор сверху! 🏰", unlockLevel: 9, unlockText: "Доступно с 9 уровня" },
+    { id: "cactus_scratch", name: "Кактус-когтеточка 🌵", crystalPrice: 35, description: "Стильная когтеточка в форме зеленого кактуса. Мяу-стиль! 🌵", unlockLevel: 12, unlockText: "Разблокируется с 12 уровня" },
+    { id: "aquarium", name: "Аквариум 🐠", crystalPrice: 20, description: "Подводный мир с рыбками прямо в комнате. Котики будут заворожены! 🐠", unlockLevel: 15, unlockText: "Доступно с 15 уровня" },
   ];
 
   const RUG_THEMES = [
-    { id: "pink", name: "Розовое облако 🌸", price: 0, color: "bg-rose-200" },
-    { id: "blue", name: "Морская волна 💙", price: 140, color: "bg-sky-200" },
-    { id: "green", name: "Сочная травка 💚", price: 140, color: "bg-emerald-200" },
-    { id: "boho", name: "Горчичный пирог 💛", price: 140, color: "bg-amber-200" },
-    { id: "space_rug", name: "Звёздный ковер 🌌", crystalPrice: 15, color: "bg-indigo-900" },
-    { id: "rainbow_rug", name: "Радужные лапки 🌈", crystalPrice: 12, color: "bg-fuchsia-300" },
-    { id: "golden_royal", name: "Тронный ковёр 👑", crystalPrice: 20, color: "bg-yellow-500" },
-    { id: "checkered_cyber", name: "Кибер-шахматы 🔲", crystalPrice: 15, color: "bg-slate-900" },
+    { id: "pink", name: "Розовое облако 🌸", price: 0, color: "bg-rose-200", unlockLevel: 0, unlockText: "Базовый" },
+    { id: "blue", name: "Морская волна 💙", price: 140, color: "bg-sky-200", unlockLevel: 4, unlockText: "Доступно с 4 уровня" },
+    { id: "green", name: "Сочная травка 💚", price: 140, color: "bg-emerald-200", unlockLevel: 5, unlockText: "Доступно с 5 уровня" },
+    { id: "boho", name: "Горчичный пирог 💛", price: 140, color: "bg-amber-200", unlockLevel: 6, unlockText: "Разблокируется с 6 уровня" },
+    { id: "space_rug", name: "Звёздный ковер 🌌", crystalPrice: 15, color: "bg-indigo-900", unlockLevel: 8, unlockText: "Доступно с 8 уровня" },
+    { id: "rainbow_rug", name: "Радужные лапки 🌈", crystalPrice: 12, color: "bg-fuchsia-300", unlockLevel: 11, unlockText: "Доступно с 11 уровня" },
+    { id: "golden_royal", name: "Тронный ковёр 👑", crystalPrice: 20, color: "bg-yellow-500", unlockLevel: 12, unlockText: "Разблокируется с 12 уровня" },
+    { id: "checkered_cyber", name: "Кибер-шахматы 🔲", crystalPrice: 15, color: "bg-slate-900", unlockLevel: 16, unlockText: "Доступно с 16 уровня" },
   ];
 
   const WALLPAPER_THEMES = [
-    { id: "stripes", name: "Уютная доска 🪵", price: 0, preview: "bg-orange-100" },
-    { id: "stars", name: "Звёздное небо 🌌", price: 180, preview: "bg-indigo-950" },
-    { id: "sakura", name: "Цветущая сакура 🌸", preview: "bg-pink-100", price: 180 },
-    { id: "neon_wallpaper", name: "Космические обои 👾", crystalPrice: 25, preview: "bg-purple-950" },
-    { id: "mint_clouds", name: "Мятные облака ☁️", crystalPrice: 18, preview: "bg-teal-100" },
-    { id: "golden_damask", name: "Золотой дамаск ⚜️", crystalPrice: 22, preview: "bg-amber-100" },
-    { id: "strawberry_milk", name: "Клубничное молоко 🍓", crystalPrice: 15, preview: "bg-rose-100" },
+    { id: "stripes", name: "Уютная доска 🪵", price: 0, preview: "bg-orange-100", unlockLevel: 0, unlockText: "Базовые" },
+    { id: "stars", name: "Звёздное небо 🌌", price: 180, preview: "bg-indigo-950", unlockLevel: 4, unlockText: "Доступно с 4 уровня" },
+    { id: "sakura", name: "Цветущая сакура 🌸", preview: "bg-pink-100", price: 180, unlockLevel: 5, unlockText: "Доступно с 5 уровня" },
+    { id: "mint_clouds", name: "Мятные облака ☁️", crystalPrice: 18, preview: "bg-teal-100", unlockLevel: 6, unlockText: "Разблокируется с 6 уровня" },
+    { id: "strawberry_milk", name: "Клубничное молоко 🍓", crystalPrice: 15, preview: "bg-rose-100", unlockLevel: 9, unlockText: "Доступно с 9 уровня" },
+    { id: "neon_wallpaper", name: "Космические обои 👾", crystalPrice: 25, preview: "bg-purple-950", unlockLevel: 12, unlockText: "Разблокируется с 12 уровня" },
+    { id: "golden_damask", name: "Золотой дамаск ⚜️", crystalPrice: 22, preview: "bg-amber-100", unlockLevel: 15, unlockText: "Доступно с 15 уровня" },
   ];
 
   const handleBuyShopItem = (item: typeof SHOP_ITEMS[0]) => {
+    if (!purchasedItems.includes(item.id) && completedPuzzles.length < (item.unlockLevel || 0)) {
+      SOUNDS.playError();
+      alert(`Этот предмет еще заблокирован! ${item.unlockText}`);
+      return;
+    }
+
     if (purchasedItems.includes(item.id)) {
       // Toggle placement!
       const isCurrentlyPlaced = placedCats.some(placed => placed.shopId === item.id);
@@ -273,6 +279,12 @@ export function CatRoom({
   };
 
   const handleSelectRug = (rug: typeof RUG_THEMES[0]) => {
+    if (!purchasedRugs.includes(rug.id) && completedPuzzles.length < (rug.unlockLevel || 0)) {
+      SOUNDS.playError();
+      alert(`Этот ковёр еще заблокирован! ${rug.unlockText}`);
+      return;
+    }
+
     if (purchasedRugs.includes(rug.id)) {
       setRugTheme(rug.id);
       localStorage.setItem("meowcolor_equipped_rug", rug.id);
@@ -305,6 +317,12 @@ export function CatRoom({
   };
 
   const handleSelectWallpaper = (wall: typeof WALLPAPER_THEMES[0]) => {
+    if (!purchasedWallpapers.includes(wall.id) && completedPuzzles.length < (wall.unlockLevel || 0)) {
+      SOUNDS.playError();
+      alert(`Эти обои еще заблокированы! ${wall.unlockText}`);
+      return;
+    }
+
     if (purchasedWallpapers.includes(wall.id)) {
       setWallpaper(wall.id);
       localStorage.setItem("meowcolor_equipped_wallpaper", wall.id);
@@ -1894,37 +1912,62 @@ export function CatRoom({
                 {designSection === "furniture" && SHOP_ITEMS.map((item) => {
                   const isBought = purchasedItems.includes(item.id);
                   const isPlaced = placedCats.some((placed) => placed.shopId === item.id);
+                  const isLocked = !isBought && completedPuzzles.length < (item.unlockLevel || 0);
+
                   return (
                     <div
                       key={item.id}
-                      className="bg-amber-50/25 border border-amber-100 rounded-xl p-2.5 flex items-center gap-2.5 transition-all hover:bg-amber-50/50"
+                      className={`border rounded-xl p-2.5 flex items-center gap-2.5 transition-all ${
+                        isLocked
+                          ? "bg-slate-100/60 border-slate-200 opacity-80"
+                          : "bg-amber-50/25 border-amber-100 hover:bg-amber-50/50"
+                      }`}
                     >
-                      <div className="w-12 h-12 shrink-0 bg-white rounded-xl border border-amber-100 shadow-3xs flex items-center justify-center text-3xl">
+                      <div className="w-12 h-12 shrink-0 bg-white rounded-xl border border-amber-100 shadow-3xs flex items-center justify-center text-3xl relative overflow-hidden">
                         {getShopItemGraphic(item.id)}
+                        {isLocked && (
+                          <div className="absolute inset-0 bg-slate-900/40 rounded-xl flex items-center justify-center backdrop-blur-2xs">
+                            <span className="text-base">🔒</span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 text-left min-w-0">
-                        <h4 className="text-[10px] font-pixel font-bold text-amber-900 leading-tight">
-                          {item.name}
-                        </h4>
+                        <div className="flex items-center justify-between gap-1">
+                          <h4 className="text-[10px] font-pixel font-bold text-amber-900 leading-tight truncate">
+                            {item.name}
+                          </h4>
+                          {isLocked && (
+                            <span className="text-[7.5px] font-pixel text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 shrink-0">
+                              🔒 {item.unlockText}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[8px] text-slate-500 leading-relaxed mt-0.5 font-semibold">
                           {item.description}
                         </p>
                         <div className="mt-1.5 flex justify-end">
                           <button
                             onClick={() => handleBuyShopItem(item)}
-                            className={`text-[8px] font-pixel py-1 px-3 rounded-lg font-bold uppercase transition-all cursor-pointer ${
-                              isBought
+                            disabled={isLocked}
+                            className={`text-[8px] font-pixel py-1 px-3 rounded-lg font-bold uppercase transition-all ${
+                              isLocked
+                                ? "bg-slate-200 text-slate-500 border border-slate-300 cursor-not-allowed"
+                                : isBought
                                 ? isPlaced
-                                  ? "bg-slate-400 hover:bg-slate-500 text-white"
-                                  : "bg-emerald-500 hover:bg-emerald-600 text-white"
-                                : "bg-amber-500 hover:bg-amber-600 text-white"
+                                  ? "bg-slate-400 hover:bg-slate-500 text-white cursor-pointer"
+                                  : "bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer"
+                                : "bg-amber-500 hover:bg-amber-600 text-white cursor-pointer"
                             }`}
                           >
-                            {isBought ? (isPlaced ? "Убрать из комнаты" : "Разместить") : (
-                              item.crystalPrice !== undefined
-                                ? `Купить: ${item.crystalPrice} 💎`
-                                : `Купить: ${item.price} 🧶`
-                            )}
+                            {isLocked
+                              ? `🔒 С ${item.unlockLevel} ур.`
+                              : isBought
+                              ? isPlaced
+                                ? "Убрать из комнаты"
+                                : "Разместить"
+                              : item.crystalPrice !== undefined
+                              ? `Купить: ${item.crystalPrice} 💎`
+                              : `Купить: ${item.price} 🧶`}
                           </button>
                         </div>
                       </div>
@@ -1938,34 +1981,52 @@ export function CatRoom({
                     {RUG_THEMES.map((rug) => {
                       const isBought = purchasedRugs.includes(rug.id);
                       const isEquipped = rugTheme === rug.id;
+                      const isLocked = !isBought && completedPuzzles.length < (rug.unlockLevel || 0);
+
                       return (
                         <div
                           key={rug.id}
                           className={`bg-white border rounded-xl p-2 flex flex-col justify-between text-center transition-all ${
-                            isEquipped ? "border-amber-500 ring-1 ring-amber-500 bg-amber-50/10" : "border-slate-100 hover:border-slate-300"
+                            isLocked
+                              ? "border-slate-200 bg-slate-50/50 opacity-80"
+                              : isEquipped
+                              ? "border-amber-500 ring-1 ring-amber-500 bg-amber-50/10"
+                              : "border-slate-100 hover:border-slate-300"
                           }`}
                         >
-                          <div className={`w-full aspect-[2/1] rounded-lg ${rug.color} border border-black/5 flex items-center justify-center font-pixel text-slate-700 font-extrabold text-[9px] shadow-3xs`}>
+                          <div className={`w-full aspect-[2/1] rounded-lg ${rug.color} border border-black/5 flex items-center justify-center font-pixel text-slate-700 font-extrabold text-[9px] shadow-3xs relative overflow-hidden`}>
                             {isEquipped ? "✓" : ""}
+                            {isLocked && (
+                              <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center text-white text-xs">
+                                🔒
+                              </div>
+                            )}
                           </div>
                           <div className="mt-2 text-[9.5px] font-pixel font-bold text-slate-700 truncate leading-tight">
                             {rug.name}
                           </div>
                           <button
                             onClick={() => handleSelectRug(rug)}
-                            className={`w-full text-[8px] font-pixel py-1 rounded-lg mt-1.5 font-bold transition-all cursor-pointer ${
-                              isEquipped
+                            disabled={isLocked}
+                            className={`w-full text-[8px] font-pixel py-1 rounded-lg mt-1.5 font-bold transition-all ${
+                              isLocked
+                                ? "bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300"
+                                : isEquipped
                                 ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                                 : isBought
-                                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                                  : "bg-amber-500 text-white hover:bg-amber-600"
+                                ? "bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer"
+                                : "bg-amber-500 text-white hover:bg-amber-600 cursor-pointer"
                             }`}
                           >
-                            {isEquipped ? "Используется" : isBought ? "Настелить" : (
-                              rug.crystalPrice !== undefined
-                                ? `${rug.crystalPrice} 💎`
-                                : `${rug.price} 🧶`
-                            )}
+                            {isLocked
+                              ? `🔒 ${rug.unlockText}`
+                              : isEquipped
+                              ? "Используется"
+                              : isBought
+                              ? "Настелить"
+                              : rug.crystalPrice !== undefined
+                              ? `${rug.crystalPrice} 💎`
+                              : `${rug.price} 🧶`}
                           </button>
                         </div>
                       );
@@ -1979,34 +2040,52 @@ export function CatRoom({
                     {WALLPAPER_THEMES.map((wall) => {
                       const isBought = purchasedWallpapers.includes(wall.id);
                       const isEquipped = wallpaper === wall.id;
+                      const isLocked = !isBought && completedPuzzles.length < (wall.unlockLevel || 0);
+
                       return (
                         <div
                           key={wall.id}
                           className={`bg-white border rounded-xl p-2 flex flex-col justify-between text-center transition-all ${
-                            isEquipped ? "border-amber-500 ring-1 ring-amber-500 bg-amber-50/10" : "border-slate-100 hover:border-slate-300"
+                            isLocked
+                              ? "border-slate-200 bg-slate-50/50 opacity-80"
+                              : isEquipped
+                              ? "border-amber-500 ring-1 ring-amber-500 bg-amber-50/10"
+                              : "border-slate-100 hover:border-slate-300"
                           }`}
                         >
-                          <div className={`w-full aspect-[2/1] rounded-lg ${wall.preview} border border-black/5 flex items-center justify-center font-pixel text-slate-700 font-extrabold text-[9px] shadow-3xs`}>
+                          <div className={`w-full aspect-[2/1] rounded-lg ${wall.preview} border border-black/5 flex items-center justify-center font-pixel text-slate-700 font-extrabold text-[9px] shadow-3xs relative overflow-hidden`}>
                             {isEquipped ? "✓" : ""}
+                            {isLocked && (
+                              <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center text-white text-xs">
+                                🔒
+                              </div>
+                            )}
                           </div>
                           <div className="mt-2 text-[9.5px] font-pixel font-bold text-slate-700 truncate leading-tight">
                             {wall.name}
                           </div>
                           <button
                             onClick={() => handleSelectWallpaper(wall)}
-                            className={`w-full text-[8px] font-pixel py-1 rounded-lg mt-1.5 font-bold transition-all cursor-pointer ${
-                              isEquipped
+                            disabled={isLocked}
+                            className={`w-full text-[8px] font-pixel py-1 rounded-lg mt-1.5 font-bold transition-all ${
+                              isLocked
+                                ? "bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300"
+                                : isEquipped
                                 ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                                 : isBought
-                                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                                  : "bg-amber-500 text-white hover:bg-amber-600"
+                                ? "bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer"
+                                : "bg-amber-500 text-white hover:bg-amber-600 cursor-pointer"
                             }`}
                           >
-                            {isEquipped ? "Используется" : isBought ? "Поклеить" : (
-                              wall.crystalPrice !== undefined
-                                ? `${wall.crystalPrice} 💎`
-                                : `${wall.price} 🧶`
-                            )}
+                            {isLocked
+                              ? `🔒 ${wall.unlockText}`
+                              : isEquipped
+                              ? "Используется"
+                              : isBought
+                              ? "Поклеить"
+                              : wall.crystalPrice !== undefined
+                              ? `${wall.crystalPrice} 💎`
+                              : `${wall.price} 🧶`}
                           </button>
                         </div>
                       );
