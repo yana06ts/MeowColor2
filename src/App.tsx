@@ -675,6 +675,12 @@ export default function App() {
               clearInterval(interval);
               // reset back to null so that any future changes can use calculated percent
               setMenuProgressPercent(null);
+              if (targetPercent === 100) {
+                SOUNDS.playCompleteLevel();
+                for (let p = 10; p <= 100; p += 15) {
+                  spawnMenuParticles(p);
+                }
+              }
             } else {
               setMenuProgressPercent(current);
             }
@@ -2045,6 +2051,20 @@ export default function App() {
                                 </span>
                               ))}
                             </div>
+
+                            {/* Chapter Completed 100% Celebration Banner */}
+                            {displayPercent >= 100 && (
+                              <div className="mt-1 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 text-slate-950 font-pixel rounded-2xl p-2 border-2 border-amber-300 shadow-md animate-bounce text-center select-none relative overflow-hidden animate-fade-in">
+                                <div className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-tight">
+                                  <span>👑</span>
+                                  <span>ГЛАВА ЗАПОЛНЕНА НА 100%!</span>
+                                  <span>🎉</span>
+                                </div>
+                                <p className="text-[8.5px] text-slate-950 font-extrabold mt-0.5 leading-tight">
+                                  Разблокирован СУПЕР-КОТ! 🐾
+                                </p>
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
