@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   PUZZLE_TEMPLATES,
   createInitialProgress,
@@ -53,6 +53,74 @@ const victoryCatImg = new URL(
   "./assets/images/victory_cat_artist_1783358596901.jpg",
   import.meta.url,
 ).href;
+
+export interface DailyQuest {
+  id: string;
+  title: string;
+  desc: string;
+  icon: string;
+  target: number;
+  rewardType: "yarn" | "coupons" | "crystal";
+  rewardAmount: number;
+  actionTab?: "levels" | "gacha" | "room" | "shop";
+  actionText?: string;
+}
+
+const DAILY_QUESTS: DailyQuest[] = [
+  {
+    id: "daily_login",
+    title: "Ежедневный визит 🌟",
+    desc: "Зайди в игру сегодня.",
+    icon: "🌟",
+    target: 1,
+    rewardType: "yarn",
+    rewardAmount: 200,
+  },
+  {
+    id: "paint_picture",
+    title: "Юный Художник 🎨",
+    desc: "Раскрась 1 любой рисунок по номерам.",
+    icon: "🎨",
+    target: 1,
+    rewardType: "coupons",
+    rewardAmount: 1,
+    actionTab: "levels",
+    actionText: "К рисункам 🎨",
+  },
+  {
+    id: "open_gacha",
+    title: "Коробка Удачи 🎁",
+    desc: "Испытай удачу в Коробке Удачи 1 раз.",
+    icon: "🎁",
+    target: 1,
+    rewardType: "crystal",
+    rewardAmount: 2,
+    actionTab: "gacha",
+    actionText: "В Гатчу 🎁",
+  },
+  {
+    id: "pet_cat",
+    title: "Ласковый Гладильщик 🐾",
+    desc: "Погладь котика в Кото-Домике 3 раза.",
+    icon: "🐾",
+    target: 3,
+    rewardType: "yarn",
+    rewardAmount: 150,
+    actionTab: "room",
+    actionText: "Погладить 🐾",
+  },
+  {
+    id: "color_cells",
+    title: "Магия Цвета ✨",
+    desc: "Закрась хотя бы 15 ячеек на холсте.",
+    icon: "✨",
+    target: 15,
+    rewardType: "crystal",
+    rewardAmount: 1,
+    actionTab: "levels",
+    actionText: "Красить 🖌️",
+  },
+];
 
 export default function App() {
   // Lives/Hearts system states
@@ -226,6 +294,21 @@ export default function App() {
     }
     return [];
   });
+  const [notifiedAchievements, setNotifiedAchievements] = useState<string[]>(() => {
+    const saved = localStorage.getItem("meowcolor_notified_achievements");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [unclaimedAchievementModal, setUnclaimedAchievementModal] = useState<{
+    id: string;
+    title: string;
+    desc: string;
+    gYarnReward: number;
+  } | null>(null);
   const [gachaUnlockedCats, setGachaUnlockedCats] = useState<string[]>(() => {
     const saved = localStorage.getItem("meowcolor_gacha_unlocked");
     if (saved) {
@@ -356,6 +439,75 @@ export default function App() {
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
   const [showAchievementsModal, setShowAchievementsModal] =
     useState<boolean>(false);
+  const [showDailyQuestsModal, setShowDailyQuestsModal] = useState<boolean>(false);
+
+  const [dailyQuestsProgress, setDailyQuestsProgress] = useState<Record<string, number>>(() => {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const savedDate = localStorage.getItem("meowcolor_daily_quests_date");
+    if (savedDate === todayKey) {
+      const saved = localStorage.getItem("meowcolor_daily_quests_progress");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return { daily_login: 1 };
+  });
+
+  const [dailyQuestsClaimed, setDailyQuestsClaimed] = useState<string[]>(() => {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const savedDate = localStorage.getItem("meowcolor_daily_quests_date");
+    if (savedDate === todayKey) {
+      const saved = localStorage.getItem("meowcolor_daily_quests_claimed");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const savedDate = localStorage.getItem("meowcolor_daily_quests_date");
+    if (savedDate !== todayKey) {
+      localStorage.setItem("meowcolor_daily_quests_date", todayKey);
+      const initProg = { daily_login: 1 };
+      setDailyQuestsProgress(initProg);
+      localStorage.setItem("meowcolor_daily_quests_progress", JSON.stringify(initProg));
+      setDailyQuestsClaimed([]);
+      localStorage.setItem("meowcolor_daily_quests_claimed", JSON.stringify([]));
+    }
+  }, []);
+
+  const incrementDailyQuestProgress = (questId: string, amount = 1) => {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const savedDate = localStorage.getItem("meowcolor_daily_quests_date");
+
+    let currentProg = dailyQuestsProgress;
+    if (savedDate !== todayKey) {
+      localStorage.setItem("meowcolor_daily_quests_date", todayKey);
+      currentProg = { daily_login: 1 };
+      setDailyQuestsClaimed([]);
+      localStorage.setItem("meowcolor_daily_quests_claimed", JSON.stringify([]));
+    }
+
+    const newCount = (currentProg[questId] || 0) + amount;
+    const updated = { ...currentProg, [questId]: newCount };
+    setDailyQuestsProgress(updated);
+    localStorage.setItem("meowcolor_daily_quests_progress", JSON.stringify(updated));
+  };
+
+  const hasUnclaimedDailyQuests = useMemo(() => {
+    return DAILY_QUESTS.some((q) => {
+      const prog = dailyQuestsProgress[q.id] || 0;
+      const isCompleted = prog >= q.target;
+      const isClaimed = dailyQuestsClaimed.includes(q.id);
+      return isCompleted && !isClaimed;
+    });
+  }, [dailyQuestsProgress, dailyQuestsClaimed]);
   const [levelCompleteModal, setLevelCompleteModal] = useState<{
     active: boolean;
     yarnEarned: number;
@@ -769,6 +921,112 @@ export default function App() {
     );
   };
 
+  const achievementsList = useMemo(() => {
+    return [
+      {
+        id: "first_cat",
+        title: "Первый Мурка 🐱",
+        desc: "Раскрась первого котика по номерам.",
+        gYarnReward: 5,
+        check: () => {
+          const allPuzzles = [...PUZZLE_TEMPLATES, ...GACHA_EXCLUSIVE_PUZZLES];
+          return completedPuzzles.some((pId) => {
+            const templ = allPuzzles.find((t) => t.id === pId);
+            return templ && templ.category === "cats";
+          });
+        },
+      },
+      {
+        id: "cat_level_2",
+        title: "Заботливый Опекун ⭐",
+        desc: "Прокачай любого котика до 2-го уровня или выше.",
+        gYarnReward: 8,
+        check: () => {
+          return Object.values(catLevels).some((lvl) => (lvl as number) >= 2);
+        },
+      },
+      {
+        id: "cat_level_5",
+        title: "Кошачий Владыка 👑",
+        desc: "Достигни максимального 5-го уровня на котике.",
+        gYarnReward: 15,
+        check: () => {
+          return Object.values(catLevels).some((lvl) => (lvl as number) >= 5);
+        },
+      },
+      {
+        id: "furniture_buy",
+        title: "Уютный Дизайнер 🛋️",
+        desc: "Поставь мебель или игрушку в Кошачий Кото-Дом.",
+        gYarnReward: 8,
+        check: () => {
+          const placedCatsVal = localStorage.getItem("meowcolor_placed_cats");
+          if (placedCatsVal) {
+            try {
+              const parsed = JSON.parse(placedCatsVal);
+              return parsed.some(
+                (item: any) =>
+                  item.shopId ||
+                  (item.puzzleId && item.puzzleId.startsWith("toy_")),
+              );
+            } catch (e) {}
+          }
+          return false;
+        },
+      },
+      {
+        id: "high_yarn",
+        title: "Зажиточный Клубок 🧶",
+        desc: "Накопи 1000 или более обычной пряжи одновременно.",
+        gYarnReward: 10,
+        check: () => yarnCount >= 1000,
+      },
+      {
+        id: "three_cats",
+        title: "Кошачий Приют 🐈‍⬛",
+        desc: "Собери коллекцию из 3 завершённых картин с котиками.",
+        gYarnReward: 10,
+        check: () => {
+          const allPuzzles = [...PUZZLE_TEMPLATES, ...GACHA_EXCLUSIVE_PUZZLES];
+          return (
+            completedPuzzles.filter((pId) => {
+              const templ = allPuzzles.find((t) => t.id === pId);
+              return templ && templ.category === "cats";
+            }).length >= 3
+          );
+        },
+      },
+    ];
+  }, [completedPuzzles, catLevels, yarnCount]);
+
+  const hasUnclaimedAchievements = useMemo(() => {
+    return achievementsList.some(
+      (acc) => acc.check() && !claimedAchievements.includes(acc.id),
+    );
+  }, [achievementsList, claimedAchievements]);
+
+  useEffect(() => {
+    if (!unclaimedAchievementModal) {
+      const newlyUnlocked = achievementsList.find((acc) => {
+        const isCompleted = acc.check();
+        const isClaimed = claimedAchievements.includes(acc.id);
+        const isNotified = notifiedAchievements.includes(acc.id);
+        return isCompleted && !isClaimed && !isNotified;
+      });
+
+      if (newlyUnlocked) {
+        setUnclaimedAchievementModal(newlyUnlocked);
+        const nextNotified = [...notifiedAchievements, newlyUnlocked.id];
+        setNotifiedAchievements(nextNotified);
+        localStorage.setItem(
+          "meowcolor_notified_achievements",
+          JSON.stringify(nextNotified),
+        );
+        SOUNDS.playCompleteLevel();
+      }
+    }
+  }, [achievementsList, claimedAchievements, notifiedAchievements, unclaimedAchievementModal]);
+
   const updatePowerupsVal = (newPowerups: typeof powerups) => {
     setPowerups(newPowerups);
     localStorage.setItem("meowcolor_powerups", JSON.stringify(newPowerups));
@@ -832,6 +1090,7 @@ export default function App() {
       }
     });
     setCurrentProgress(updated);
+    incrementDailyQuestProgress("color_cells", indices.length);
 
     // Tutorial step advancement
     if (tutorialStep === 2) {
@@ -888,6 +1147,7 @@ export default function App() {
 
     if (isPuzzleFinished) {
       // Complete!
+      incrementDailyQuestProgress("paint_picture", 1);
       const puzzleId = selectedPuzzle!.id;
       const isFirstTime = !completedPuzzles.includes(puzzleId);
 
@@ -1079,6 +1339,8 @@ export default function App() {
       setEquippedSkins({});
       setUnlockedSkins([]);
       setClaimedAchievements([]);
+      setDailyQuestsProgress({ daily_login: 1 });
+      setDailyQuestsClaimed([]);
       setCurrentLevelIndex(0);
       setPowerups({ wand: 3, bomb: 3, magnifier: 3 });
       setCustomPuzzles([]);
@@ -1663,7 +1925,32 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 flex flex-col overflow-hidden relative">
+                  {/* FLOATING DAILY QUESTS ICON ON THE LEFT SIDE OF MAIN SCREEN */}
+                  <button
+                    id="main-daily-quests-btn"
+                    onClick={() => {
+                      setShowDailyQuestsModal(true);
+                      SOUNDS.playPop(1.1);
+                    }}
+                    className="absolute top-3 left-3 z-30 flex flex-col items-center group cursor-pointer active:scale-95 transition-transform select-none"
+                    title="Ежедневные задания 📋"
+                  >
+                    <div className="relative w-11 h-11 bg-gradient-to-tr from-amber-400 via-orange-400 to-rose-400 p-0.5 rounded-2xl shadow-md border-2 border-white flex items-center justify-center animate-bounce-slow">
+                      <div className="w-full h-full bg-amber-50 rounded-[14px] flex items-center justify-center">
+                        <span className="text-xl">📋</span>
+                      </div>
+                      {hasUnclaimedDailyQuests && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white font-pixel font-black text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce shadow-md border-2 border-white">
+                          !
+                        </span>
+                      )}
+                    </div>
+                    <span className="mt-0.5 bg-slate-900/80 text-amber-100 font-pixel font-bold text-[7.5px] px-1.5 py-0.5 rounded-full shadow-md backdrop-blur-xs uppercase tracking-tight">
+                      Задания
+                    </span>
+                  </button>
+
                   {/* TAB 1: LEVELS SCREEN */}
                   {activeTab === "levels" && (
                     <div className="flex-1 flex flex-col overflow-hidden bg-[#FFFBF0] animate-fade-in relative">
@@ -1704,7 +1991,7 @@ export default function App() {
                         const displayPercent = menuProgressPercent !== null ? menuProgressPercent : percent;
 
                         return (
-                          <div className="mx-4 mt-4 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-50 border-2 border-amber-200 rounded-3xl p-3.5 flex flex-col gap-1.5 shrink-0 select-none shadow-sm relative overflow-visible">
+                          <div className="ml-14 mr-4 mt-3 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-50 border-2 border-amber-200 rounded-3xl p-3 flex flex-col gap-1.5 shrink-0 select-none shadow-sm relative overflow-visible">
                             <div className="flex justify-between items-center text-[9.5px] font-pixel text-amber-900 font-black uppercase">
                               <span className="flex items-center gap-1">
                                 👑 Прогресс Главы:{" "}
@@ -1869,6 +2156,7 @@ export default function App() {
                           }
                         }}
                         onPetCatCallback={() => {
+                          incrementDailyQuestProgress("pet_cat", 1);
                           if (houseTutorialStep === 3) {
                             localStorage.setItem(
                               "meowcolor_tutorial_house",
@@ -1994,6 +2282,7 @@ export default function App() {
 
                             SOUNDS.playPop(1.1);
                             setRollingGacha(true);
+                            incrementDailyQuestProgress("open_gacha", 1);
 
                             setTimeout(() => {
                               const rand = Math.random();
@@ -2146,7 +2435,7 @@ export default function App() {
                                       type: "cat_puzzle",
                                       title: "🎉 НОВЫЙ КОТИК! 🎉",
                                       name: rolled.name,
-                                      image: rolled.image || "🐱",
+                                      image: "🐱",
                                       description: "Ура! Новый пушистый котик поселился в вашем Кото-Домике! 🐱🏠",
                                       goToRoom: true,
                                     });
@@ -2158,7 +2447,7 @@ export default function App() {
                                       type: "cat_puzzle",
                                       title: "✨ ДУБЛИКАТ КОТИКА! ✨",
                                       name: rolled.name,
-                                      image: rolled.image || "🐱",
+                                      image: "🐱",
                                       description: "Повторка! Засчитан дубликат котика для прокачки его уровня +1 🌟",
                                       goToRoom: true,
                                     });
@@ -2173,7 +2462,7 @@ export default function App() {
                                       type: "cat_puzzle",
                                       title: "🎉 НОВАЯ КАРТИНКА! 🎉",
                                       name: rolled.name,
-                                      image: rolled.image || "🖼️",
+                                      image: "🖼️",
                                       description: "Эксклюзивная картина разблокирована в вашем меню выбора уровней! 🖼️",
                                       goToRoom: false,
                                     });
@@ -2183,7 +2472,7 @@ export default function App() {
                                       type: "cat_puzzle",
                                       title: "✨ ДУБЛИКАТ КАРТИНЫ! ✨",
                                       name: rolled.name,
-                                      image: rolled.image || "🖼️",
+                                      image: "🖼️",
                                       description: "Повторка картины! Вам начислено +200 обычной пряжи! 🧶",
                                       goToRoom: false,
                                     });
@@ -2290,96 +2579,18 @@ export default function App() {
                     <div className="flex-1 flex flex-col overflow-hidden bg-[#FFFBF0] animate-fade-in p-4 space-y-4">
                       <div className="flex items-center gap-1.5 border-b border-rose-100 pb-2 shrink-0">
                         <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
-                        <h3 className="text-[10px] font-pixel text-slate-700 uppercase tracking-tight">
-                          Кошачьи Достижения 🏆
+                        <h3 className="text-[10px] font-pixel text-slate-700 uppercase tracking-tight flex items-center gap-1.5">
+                          <span>Кошачьи Достижения 🏆</span>
+                          {hasUnclaimedAchievements && (
+                            <span className="bg-rose-500 text-white text-[7.5px] font-pixel px-1.5 py-0.5 rounded-full animate-bounce font-bold">
+                              есть награда! ❗
+                            </span>
+                          )}
                         </h3>
                       </div>
 
                       <div className="flex-1 overflow-y-auto pr-1 space-y-3 pt-1 scrollbar-thin select-none">
-                        {[
-                          {
-                            id: "first_cat",
-                            title: "Первый Мурка 🐱",
-                            desc: "Раскрась первого котика по номерам.",
-                            gYarnReward: 5,
-                            check: () => {
-                              return completedPuzzles.some((pId) => {
-                                const templ = allAvailablePuzzles.find(
-                                  (t) => t.id === pId,
-                                );
-                                return templ && templ.category === "cats";
-                              });
-                            },
-                          },
-                          {
-                            id: "cat_level_2",
-                            title: "Заботливый Опекун ⭐",
-                            desc: "Прокачай любого котика до 2-го уровня или выше.",
-                            gYarnReward: 8,
-                            check: () => {
-                              return Object.values(catLevels).some(
-                                (lvl) => (lvl as number) >= 2,
-                              );
-                            },
-                          },
-                          {
-                            id: "cat_level_5",
-                            title: "Кошачий Владыка 👑",
-                            desc: "Достигни максимального 5-го уровня на котике.",
-                            gYarnReward: 15,
-                            check: () => {
-                              return Object.values(catLevels).some(
-                                (lvl) => (lvl as number) >= 5,
-                              );
-                            },
-                          },
-                          {
-                            id: "furniture_buy",
-                            title: "Уютный Дизайнер 🛋️",
-                            desc: "Поставь мебель или игрушку в Кошачий Кото-Дом.",
-                            gYarnReward: 8,
-                            check: () => {
-                              const placedCatsVal = localStorage.getItem(
-                                "meowcolor_placed_cats",
-                              );
-                              if (placedCatsVal) {
-                                try {
-                                  const parsed = JSON.parse(placedCatsVal);
-                                  return parsed.some(
-                                    (item: any) =>
-                                      item.shopId ||
-                                      (item.puzzleId &&
-                                        item.puzzleId.startsWith("toy_")),
-                                  );
-                                } catch (e) {}
-                              }
-                              return false;
-                            },
-                          },
-                          {
-                            id: "high_yarn",
-                            title: "Зажиточный Клубок 🧶",
-                            desc: "Накопи 1000 или более обычной пряжи одновременно.",
-                            gYarnReward: 10,
-                            check: () => yarnCount >= 1000,
-                          },
-                          {
-                            id: "three_cats",
-                            title: "Кошачий Приют 🐈‍⬛",
-                            desc: "Собери коллекцию из 3 завершённых картин с котиками.",
-                            gYarnReward: 10,
-                            check: () => {
-                              return (
-                                completedPuzzles.filter((pId) => {
-                                  const templ = allAvailablePuzzles.find(
-                                    (t) => t.id === pId,
-                                  );
-                                  return templ && templ.category === "cats";
-                                }).length >= 3
-                              );
-                            },
-                          },
-                        ].map((acc) => {
+                        {achievementsList.map((acc) => {
                           const isCompleted = acc.check();
                           const isClaimed = claimedAchievements.includes(
                             acc.id,
@@ -2392,14 +2603,17 @@ export default function App() {
                                 isClaimed
                                   ? "bg-slate-50 border-slate-200/60 opacity-65 font-medium"
                                   : isCompleted
-                                    ? "bg-amber-500/5 border-amber-300 shadow-3xs"
+                                    ? "bg-amber-500/10 border-amber-400 shadow-sm ring-1 ring-amber-300/60"
                                     : "bg-white border-slate-100 shadow-3xs"
                               }`}
                             >
                               <div className="flex justify-between items-start gap-2">
                                 <div>
-                                  <h4 className="text-[10px] font-bold text-slate-800 leading-tight uppercase font-pixel tracking-tight">
-                                    {acc.title}
+                                  <h4 className="text-[10px] font-bold text-slate-800 leading-tight uppercase font-pixel tracking-tight flex items-center gap-1">
+                                    <span>{acc.title}</span>
+                                    {isCompleted && !isClaimed && (
+                                      <span className="text-rose-500 font-black animate-ping text-xs">❗</span>
+                                    )}
                                   </h4>
                                   <p className="text-[8.5px] text-slate-500 leading-normal mt-0.5 font-semibold">
                                     {acc.desc}
@@ -2427,9 +2641,9 @@ export default function App() {
                                       ]);
                                       SOUNDS.playSuccessColor();
                                     }}
-                                    className="w-full text-center bg-sky-500 hover:bg-sky-600 text-white font-black py-2 rounded-xl text-[8.5px] font-pixel cursor-pointer tracking-wider animate-bounce uppercase border-0 shadow-3xs"
+                                    className="w-full text-center bg-sky-500 hover:bg-sky-600 text-white font-black py-2 rounded-xl text-[8.5px] font-pixel cursor-pointer tracking-wider animate-bounce uppercase border-0 shadow-3xs flex items-center justify-center gap-1"
                                   >
-                                    Забрать Награду! 💎
+                                    <span>Забрать Награду! 💎</span>
                                   </button>
                                 ) : (
                                   <span className="text-[8px] font-pixel text-slate-400 flex items-center justify-center gap-0.5 font-bold uppercase">
@@ -2769,7 +2983,14 @@ export default function App() {
                     {isAchievementsLocked ? (
                       <Lock className="w-4 h-4 text-slate-400" />
                     ) : (
-                      <Trophy className="w-5 h-5" />
+                      <div className="relative">
+                        <Trophy className="w-5 h-5" />
+                        {hasUnclaimedAchievements && (
+                          <span className="absolute -top-2 -right-2 bg-rose-500 text-white font-pixel font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center animate-bounce shadow-md border-2 border-white">
+                            !
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                   {!isAchievementsLocked && activeTab === "achievements" && (
@@ -3567,97 +3788,19 @@ export default function App() {
 
                   <div className="flex items-center gap-2 border-b border-rose-100 pb-3 mb-4 shrink-0 col-span-2">
                     <Trophy className="w-5 h-5 text-amber-500 animate-bounce" />
-                    <h3 className="text-xs font-pixel text-slate-800 uppercase tracking-tight">
-                      Кошачьи Достижения 🏆
+                    <h3 className="text-xs font-pixel text-slate-800 uppercase tracking-tight flex items-center gap-1.5">
+                      <span>Кошачьи Достижения 🏆</span>
+                      {hasUnclaimedAchievements && (
+                        <span className="bg-rose-500 text-white text-[7.5px] font-pixel px-1.5 py-0.5 rounded-full animate-bounce font-bold">
+                          есть награда! ❗
+                        </span>
+                      )}
                     </h3>
                   </div>
 
                   {/* Achievements list */}
                   <div className="flex-1 overflow-y-auto pr-1 no-scrollbar space-y-3 pb-3">
-                    {[
-                      {
-                        id: "first_cat",
-                        title: "Первый Мурка 🐱",
-                        desc: "Раскрась первого котика по номерам.",
-                        gYarnReward: 5,
-                        check: () => {
-                          return completedPuzzles.some((pId) => {
-                            const templ = allAvailablePuzzles.find(
-                              (t) => t.id === pId,
-                            );
-                            return templ && templ.category === "cats";
-                          });
-                        },
-                      },
-                      {
-                        id: "cat_level_2",
-                        title: "Заботливый Опекун ⭐",
-                        desc: "Прокачай любого котика до 2-го уровня или выше.",
-                        gYarnReward: 8,
-                        check: () => {
-                          return Object.values(catLevels).some(
-                            (lvl) => (lvl as number) >= 2,
-                          );
-                        },
-                      },
-                      {
-                        id: "cat_level_5",
-                        title: "Кошачий Владыка 👑",
-                        desc: "Достигни максимального 5-го уровня на котике.",
-                        gYarnReward: 15,
-                        check: () => {
-                          return Object.values(catLevels).some(
-                            (lvl) => (lvl as number) >= 5,
-                          );
-                        },
-                      },
-                      {
-                        id: "furniture_buy",
-                        title: "Уютный Дизайнер 🛋️",
-                        desc: "Поставь мебель или игрушку в Кошачий Кото-Дом.",
-                        gYarnReward: 8,
-                        check: () => {
-                          const placedCatsVal = localStorage.getItem(
-                            "meowcolor_placed_cats",
-                          );
-                          if (placedCatsVal) {
-                            try {
-                              const parsed = JSON.parse(placedCatsVal);
-                              return parsed.some(
-                                (item: any) =>
-                                  item.shopId ||
-                                  (item.puzzleId &&
-                                    item.puzzleId.startsWith("toy_")),
-                              );
-                            } catch (e) {}
-                          }
-                          return false;
-                        },
-                      },
-                      {
-                        id: "high_yarn",
-                        title: "Зажиточный Клубок 🧶",
-                        desc: "Накопи 1000 или более обычной пряжи одновременно.",
-                        gYarnReward: 10,
-                        check: () => yarnCount >= 1000,
-                      },
-                      {
-                        id: "three_cats",
-                        title: "Кошачий Приют 🐈‍⬛",
-                        desc: "Собери коллекцию из 3 завершённых картин с котиками.",
-                        gYarnReward: 10,
-                        check: () => {
-                          return (
-                            completedPuzzles.filter((pId) => {
-                              const templ = allAvailablePuzzles.find(
-                                (t) => t.id === pId,
-                              );
-                              return templ && templ.category === "cats";
-                            }).length >= 3
-                          );
-                        },
-                      },
-                    ].map((acc) => {
+                    {achievementsList.map((acc) => {
                       const isCompleted = acc.check();
                       const isClaimed = claimedAchievements.includes(acc.id);
 
@@ -3668,14 +3811,17 @@ export default function App() {
                             isClaimed
                               ? "bg-slate-50 border-slate-200 opacity-65 font-medium"
                               : isCompleted
-                                ? "bg-amber-500/5 border-amber-300 shadow-xs"
+                                ? "bg-amber-500/10 border-amber-300 shadow-sm ring-1 ring-amber-300/60"
                                 : "bg-white border-slate-100"
                           }`}
                         >
                           <div className="flex justify-between items-start gap-1">
                             <div>
-                              <h4 className="text-[11px] font-bold text-slate-800 leading-tight uppercase font-pixel tracking-tight">
-                                {acc.title}
+                              <h4 className="text-[11px] font-bold text-slate-800 leading-tight uppercase font-pixel tracking-tight flex items-center gap-1">
+                                <span>{acc.title}</span>
+                                {isCompleted && !isClaimed && (
+                                  <span className="text-rose-500 font-black animate-ping text-xs">❗</span>
+                                )}
                               </h4>
                               <p className="text-[9px] text-slate-500 leading-normal mt-0.5 font-semibold">
                                 {acc.desc}
@@ -3728,6 +3874,267 @@ export default function App() {
                   >
                     Закрыть 🐾
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* UNCLAIMED ACHIEVEMENT POPUP NOTIFICATION */}
+            {unclaimedAchievementModal && (
+              <div className="absolute inset-0 z-50 bg-[#000000a0] backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-gradient-to-b from-[#FFFDF6] via-[#FFFBF0] to-[#FFF6DC] rounded-[2.5rem] p-6 shadow-2xl border-4 border-amber-400 max-w-sm w-full text-center relative select-none animate-fade-in text-[#5C3A21]">
+                  <div className="w-20 h-20 bg-gradient-to-tr from-amber-300 via-orange-300 to-rose-300 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white shadow-lg animate-bounce">
+                    <span className="text-4xl">🏆</span>
+                  </div>
+                  <h2 className="text-[11px] font-pixel font-black text-amber-600 uppercase tracking-wide mb-1">
+                    🎉 ДОСТИЖЕНИЕ ПОЛУЧЕНО! 🎉
+                  </h2>
+                  <h3 className="text-sm font-pixel text-slate-800 font-extrabold uppercase mb-2 leading-snug">
+                    {unclaimedAchievementModal.title}
+                  </h3>
+                  <div className="bg-amber-100/90 p-3 rounded-2xl border border-amber-200/80 mb-4 text-left">
+                    <p className="text-[9.5px] font-pixel text-amber-900 leading-relaxed font-semibold">
+                      {unclaimedAchievementModal.desc}
+                    </p>
+                  </div>
+                  <div className="bg-sky-100/90 border border-sky-300/80 rounded-2xl p-2.5 mb-5 text-center">
+                    <span className="text-[10px] font-pixel font-bold text-sky-900 uppercase">
+                      Награда: +{unclaimedAchievementModal.gYarnReward} Кристаллов 💎
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => {
+                        updateGoldYarn(
+                          goldYarnCount + unclaimedAchievementModal.gYarnReward,
+                        );
+                        updateClaimedAchievements([
+                          ...claimedAchievements,
+                          unclaimedAchievementModal.id,
+                        ]);
+                        setUnclaimedAchievementModal(null);
+                        SOUNDS.playSuccessColor();
+                      }}
+                      className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black py-3 rounded-2xl text-[10px] font-pixel shadow-md cursor-pointer active:scale-95 transition-all border border-amber-300 uppercase tracking-wide"
+                    >
+                      Забрать Награду! 💎
+                    </button>
+                    <button
+                      onClick={() => {
+                        setUnclaimedAchievementModal(null);
+                        SOUNDS.playPop(0.9);
+                      }}
+                      className="w-full bg-white/80 hover:bg-white text-slate-500 font-bold py-2 rounded-xl text-[9px] font-pixel cursor-pointer transition-all border border-slate-200 uppercase"
+                    >
+                      Позже 🐾
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* DAILY QUESTS MODAL */}
+            {showDailyQuestsModal && (
+              <div className="absolute inset-0 z-50 bg-[#00000075] backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl p-5 shadow-2xl border-2 border-amber-300 max-w-sm w-full relative select-none animate-fade-in flex flex-col max-h-[85%]">
+                  {/* Close Button */}
+                  <button
+                    id="daily-quests-close-btn"
+                    onClick={() => {
+                      setShowDailyQuestsModal(false);
+                      SOUNDS.playPop(0.9);
+                    }}
+                    className="absolute top-4 right-4 text-xs font-pixel text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                  >
+                    ✕
+                  </button>
+
+                  {/* Header */}
+                  <div className="flex items-center gap-2 border-b border-amber-100 pb-3 mb-3 shrink-0">
+                    <span className="text-2xl animate-bounce">📋</span>
+                    <div>
+                      <h3 className="text-xs font-pixel text-slate-800 uppercase tracking-tight font-extrabold">
+                        Ежедневные Задания
+                      </h3>
+                      <p className="text-[8px] font-pixel text-amber-700 font-semibold mt-0.5">
+                        Обновляются каждый день! ⏰
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Claim All Button if multiple available */}
+                  {DAILY_QUESTS.filter((q) => {
+                    const prog = dailyQuestsProgress[q.id] || 0;
+                    return prog >= q.target && !dailyQuestsClaimed.includes(q.id);
+                  }).length > 1 && (
+                    <button
+                      onClick={() => {
+                        let totalYarn = 0;
+                        let totalCoupons = 0;
+                        let totalCrystals = 0;
+                        const newClaimed = [...dailyQuestsClaimed];
+
+                        DAILY_QUESTS.forEach((q) => {
+                          const prog = dailyQuestsProgress[q.id] || 0;
+                          if (prog >= q.target && !newClaimed.includes(q.id)) {
+                            newClaimed.push(q.id);
+                            if (q.rewardType === "yarn") totalYarn += q.rewardAmount;
+                            if (q.rewardType === "coupons") totalCoupons += q.rewardAmount;
+                            if (q.rewardType === "crystal") totalCrystals += q.rewardAmount;
+                          }
+                        });
+
+                        if (totalYarn > 0) updateYarn(yarnCount + totalYarn);
+                        if (totalCoupons > 0) updateGachaTickets(gachaTickets + totalCoupons);
+                        if (totalCrystals > 0) updateGoldYarn(goldYarnCount + totalCrystals);
+
+                        setDailyQuestsClaimed(newClaimed);
+                        localStorage.setItem(
+                          "meowcolor_daily_quests_claimed",
+                          JSON.stringify(newClaimed),
+                        );
+                        SOUNDS.playSuccessColor();
+                        showToast("Все доступные награды забраны! 🎁✨");
+                      }}
+                      className="w-full mb-3 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 font-black py-2 rounded-xl text-[9px] font-pixel shadow-xs cursor-pointer hover:scale-102 active:scale-95 transition-all uppercase border border-amber-300 text-center animate-bounce shrink-0"
+                    >
+                      ✨ Забрать Все Награды! 🎁
+                    </button>
+                  )}
+
+                  {/* Quests List */}
+                  <div className="flex-1 overflow-y-auto pr-1 no-scrollbar space-y-2.5 pb-2">
+                    {DAILY_QUESTS.map((quest) => {
+                      const currentProg = Math.min(
+                        quest.target,
+                        dailyQuestsProgress[quest.id] || 0,
+                      );
+                      const isCompleted = currentProg >= quest.target;
+                      const isClaimed = dailyQuestsClaimed.includes(quest.id);
+
+                      const rewardIcon =
+                        quest.rewardType === "yarn"
+                          ? "🧶"
+                          : quest.rewardType === "coupons"
+                            ? "🎟️"
+                            : "💎";
+
+                      return (
+                        <div
+                          key={quest.id}
+                          className={`p-3 rounded-2xl border transition-all ${
+                            isClaimed
+                              ? "bg-slate-50 border-slate-200 opacity-60"
+                              : isCompleted
+                                ? "bg-amber-500/10 border-amber-300 ring-1 ring-amber-300/60 shadow-xs"
+                                : "bg-white border-slate-100 shadow-3xs"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl shrink-0">{quest.icon}</span>
+                              <div>
+                                <h4 className="text-[10px] font-bold text-slate-800 leading-tight uppercase font-pixel tracking-tight flex items-center gap-1">
+                                  <span>{quest.title}</span>
+                                  {isCompleted && !isClaimed && (
+                                    <span className="text-rose-500 font-black animate-ping text-xs">
+                                      ❗
+                                    </span>
+                                  )}
+                                </h4>
+                                <p className="text-[8.5px] text-slate-500 leading-normal mt-0.5 font-semibold">
+                                  {quest.desc}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Reward Badge */}
+                            <div className="shrink-0 bg-amber-100/80 border border-amber-300 px-2 py-1 rounded-xl text-[8.5px] font-pixel font-bold text-amber-900 flex items-center gap-1">
+                              <span>{rewardIcon}</span>
+                              <span>+{quest.rewardAmount}</span>
+                            </div>
+                          </div>
+
+                          {/* Progress Bar & Actions */}
+                          <div className="mt-2.5 flex items-center gap-2">
+                            <div className="flex-1 bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200/80 relative">
+                              <div
+                                className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 h-full rounded-full transition-all duration-300"
+                                style={{
+                                  width: `${Math.min(100, (currentProg / quest.target) * 100)}%`,
+                                }}
+                              />
+                              <span className="absolute inset-0 flex items-center justify-center text-[7.5px] font-pixel font-black text-slate-700">
+                                {currentProg} / {quest.target}
+                              </span>
+                            </div>
+
+                            {/* Action Button */}
+                            {isClaimed ? (
+                              <span className="text-[8px] font-pixel text-slate-400 font-bold uppercase shrink-0 px-2">
+                                Забрано ✓
+                              </span>
+                            ) : isCompleted ? (
+                              <button
+                                onClick={() => {
+                                  if (quest.rewardType === "yarn") {
+                                    updateYarn(yarnCount + quest.rewardAmount);
+                                  } else if (quest.rewardType === "coupons") {
+                                    updateGachaTickets(gachaTickets + quest.rewardAmount);
+                                  } else if (quest.rewardType === "crystal") {
+                                    updateGoldYarn(goldYarnCount + quest.rewardAmount);
+                                  }
+
+                                  const updatedClaimed = [
+                                    ...dailyQuestsClaimed,
+                                    quest.id,
+                                  ];
+                                  setDailyQuestsClaimed(updatedClaimed);
+                                  localStorage.setItem(
+                                    "meowcolor_daily_quests_claimed",
+                                    JSON.stringify(updatedClaimed),
+                                  );
+
+                                  SOUNDS.playSuccessColor();
+                                  showToast(
+                                    `Забрано: +${quest.rewardAmount} ${rewardIcon}!`,
+                                  );
+                                }}
+                                className="shrink-0 bg-sky-500 hover:bg-sky-600 text-white font-black px-3 py-1.5 rounded-xl text-[8.5px] font-pixel cursor-pointer tracking-wider animate-bounce uppercase border-0 shadow-3xs"
+                              >
+                                Забрать! 🎁
+                              </button>
+                            ) : quest.actionTab ? (
+                              <button
+                                onClick={() => {
+                                  setShowDailyQuestsModal(false);
+                                  if (quest.actionTab === "room") {
+                                    setActiveTab("room");
+                                    if (quest.id === "pet_cat") {
+                                      incrementDailyQuestProgress("pet_cat", 1);
+                                      SOUNDS.playMeow();
+                                      showToast("Мурр! Котик поглажен! 🐾");
+                                    }
+                                  } else if (quest.actionTab === "gacha") {
+                                    setActiveTab("gacha");
+                                  } else if (quest.actionTab === "levels") {
+                                    setActiveTab("levels");
+                                  }
+                                  SOUNDS.playPop(1.0);
+                                }}
+                                className="shrink-0 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-2.5 py-1 rounded-xl text-[8px] font-pixel cursor-pointer uppercase transition-colors"
+                              >
+                                {quest.actionText || "Перейти"}
+                              </button>
+                            ) : (
+                              <span className="text-[7.5px] font-pixel text-slate-400 font-semibold shrink-0 px-1">
+                                В процессе
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
