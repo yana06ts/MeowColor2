@@ -3390,21 +3390,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Chapter Bar Filled Notification Banner on Victory Screen */}
-                  {levelCompleteModal?.targetPercent === 100 && (
-                    <div className="mb-4 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 text-slate-950 font-pixel rounded-2xl p-3 border-2 border-amber-300 shadow-lg animate-bounce text-center select-none relative overflow-hidden">
-                      <div className="absolute -top-6 -right-6 w-16 h-16 bg-white/30 rounded-full blur-md" />
-                      <div className="flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wide">
-                        <span>👑</span>
-                        <span>ШКАЛА ГЛАВЫ 100%!</span>
-                        <span>🎉</span>
-                      </div>
-                      <p className="text-[9.5px] text-slate-950 font-extrabold mt-1 leading-tight">
-                        Прогресс заполнен! Следующий уровень — СУПЕР-КОТ! 🐾
-                      </p>
-                    </div>
-                  )}
-
                   {/* Claim Reward Button (with +yarn reward and returns to main menu) */}
                   <button
                     id="claim-reward-modal-btn"
