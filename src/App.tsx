@@ -303,7 +303,7 @@ export default function App() {
     }
     return [];
   });
-  const [unclaimedAchievementModal, setUnclaimedAchievementModal] = useState<{
+  const [achievementToast, setAchievementToast] = useState<{
     id: string;
     title: string;
     desc: string;
@@ -1001,7 +1001,7 @@ export default function App() {
   }, [achievementsList, claimedAchievements]);
 
   useEffect(() => {
-    if (!unclaimedAchievementModal) {
+    if (!achievementToast) {
       const newlyUnlocked = achievementsList.find((acc) => {
         const isCompleted = acc.check();
         const isClaimed = claimedAchievements.includes(acc.id);
@@ -1010,7 +1010,7 @@ export default function App() {
       });
 
       if (newlyUnlocked) {
-        setUnclaimedAchievementModal(newlyUnlocked);
+        setAchievementToast(newlyUnlocked);
         const nextNotified = [...notifiedAchievements, newlyUnlocked.id];
         setNotifiedAchievements(nextNotified);
         localStorage.setItem(
@@ -1018,9 +1018,15 @@ export default function App() {
           JSON.stringify(nextNotified),
         );
         SOUNDS.playCompleteLevel();
+
+        const timer = setTimeout(() => {
+          setAchievementToast(null);
+        }, 3500);
+
+        return () => clearTimeout(timer);
       }
     }
-  }, [achievementsList, claimedAchievements, notifiedAchievements, unclaimedAchievementModal]);
+  }, [achievementsList, claimedAchievements, notifiedAchievements, achievementToast]);
 
   const updatePowerupsVal = (newPowerups: typeof powerups) => {
     setPowerups(newPowerups);
@@ -1931,7 +1937,7 @@ export default function App() {
                           setShowDailyQuestsModal(true);
                           SOUNDS.playPop(1.1);
                         }}
-                        className="absolute top-16 left-3 z-30 flex flex-col items-center group cursor-pointer active:scale-95 transition-transform select-none"
+                        className="absolute top-28 left-3 z-30 flex flex-col items-center group cursor-pointer active:scale-95 transition-transform select-none"
                         title="Ежедневные задания 📋"
                       >
                         <div className="relative w-11 h-11 bg-gradient-to-tr from-amber-400 via-orange-400 to-rose-400 p-0.5 rounded-2xl shadow-md border-2 border-white flex items-center justify-center animate-bounce-slow">
@@ -2405,63 +2411,61 @@ export default function App() {
                                   });
                                 }
                               }
-                              // 6. Cat or Picture Puzzle (~10% chance)
+                              // 6. House Cats (~10% chance)
                               else {
-                                const rolled = GACHA_EXCLUSIVE_PUZZLES[Math.floor(Math.random() * GACHA_EXCLUSIVE_PUZZLES.length)];
-                                const isCat = rolled.category === "cats";
+                                const catPuzzles = GACHA_EXCLUSIVE_PUZZLES.filter(
+                                  (p) => p.category === "cats",
+                                );
+                                const rolled =
+                                  catPuzzles[
+                                    Math.floor(Math.random() * catPuzzles.length)
+                                  ];
 
-                                if (isCat) {
-                                  const isAlreadyUnlocked = gachaUnlockedCats.includes(rolled.id);
+                                if (rolled) {
+                                  const isAlreadyUnlocked =
+                                    gachaUnlockedCats.includes(rolled.id);
                                   if (!isAlreadyUnlocked) {
-                                    const updated = [...gachaUnlockedCats, rolled.id];
+                                    const updated = [
+                                      ...gachaUnlockedCats,
+                                      rolled.id,
+                                    ];
                                     setGachaUnlockedCats(updated);
-                                    localStorage.setItem("meowcolor_gacha_unlocked", JSON.stringify(updated));
+                                    localStorage.setItem(
+                                      "meowcolor_gacha_unlocked",
+                                      JSON.stringify(updated),
+                                    );
                                     setRolledReward({
                                       type: "cat_puzzle",
                                       title: "🎉 НОВЫЙ КОТИК! 🎉",
                                       name: rolled.name,
                                       image: "🐱",
-                                      description: "Ура! Новый пушистый котик поселился в вашем Кото-Домике! 🐱🏠",
+                                      description:
+                                        "Ура! Новый пушистый котик поселился в вашем Кото-Домике! 🐱🏠",
                                       goToRoom: true,
-                                    });
-                                  } else {
-                                    const currentDup = catDuplicates[rolled.id] || 0;
-                                    const updated = { ...catDuplicates, [rolled.id]: currentDup + 1 };
-                                    updateCatDuplicates(updated);
-                                    setRolledReward({
-                                      type: "cat_puzzle",
-                                      title: "✨ ДУБЛИКАТ КОТИКА! ✨",
-                                      name: rolled.name,
-                                      image: "🐱",
-                                      description: "Повторка! Засчитан дубликат котика для прокачки его уровня +1 🌟",
-                                      goToRoom: true,
-                                    });
-                                  }
-                                } else {
-                                  const isAlreadyUnlocked = unlockedGachaPuzzleIds.includes(rolled.id);
-                                  if (!isAlreadyUnlocked) {
-                                    const updated = [...unlockedGachaPuzzleIds, rolled.id];
-                                    setUnlockedGachaPuzzleIds(updated);
-                                    localStorage.setItem("meowcolor_unlocked_gacha_puzzles", JSON.stringify(updated));
-                                    setRolledReward({
-                                      type: "cat_puzzle",
-                                      title: "🎉 НОВАЯ КАРТИНКА! 🎉",
-                                      name: rolled.name,
-                                      image: "🖼️",
-                                      description: "Эксклюзивная картина разблокирована в вашем меню выбора уровней! 🖼️",
-                                      goToRoom: false,
                                     });
                                   } else {
                                     updateYarn(yarnCount + 200);
+                                    updateGachaTickets(gachaTickets + 1);
                                     setRolledReward({
                                       type: "cat_puzzle",
-                                      title: "✨ ДУБЛИКАТ КАРТИНЫ! ✨",
-                                      name: rolled.name,
-                                      image: "🖼️",
-                                      description: "Повторка картины! Вам начислено +200 обычной пряжи! 🧶",
+                                      title: "✨ КОТИК УЖЕ В ДОМИКЕ! ✨",
+                                      name: "+200 Пряжи 🧶 & +1 Купон 🎟️",
+                                      image: "🐱",
+                                      description:
+                                        "Этот котик уже живёт у вас! Начислен бонус: +200 пряжи и +1 купон!",
                                       goToRoom: false,
                                     });
                                   }
+                                } else {
+                                  updateYarn(yarnCount + 250);
+                                  setRolledReward({
+                                    type: "yarn",
+                                    title: "🧶 МЯГКАЯ ПРЯЖА! 🧶",
+                                    name: "+250 Мотков Пряжи 🧶",
+                                    image: "🧶",
+                                    description: "Баланс пополнен на +250 пряжи!",
+                                    goToRoom: false,
+                                  });
                                 }
                               }
 
@@ -3863,56 +3867,29 @@ export default function App() {
               </div>
             )}
 
-            {/* UNCLAIMED ACHIEVEMENT POPUP NOTIFICATION */}
-            {unclaimedAchievementModal && (
-              <div className="absolute inset-0 z-50 bg-[#000000a0] backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-gradient-to-b from-[#FFFDF6] via-[#FFFBF0] to-[#FFF6DC] rounded-[2.5rem] p-6 shadow-2xl border-4 border-amber-400 max-w-sm w-full text-center relative select-none animate-fade-in text-[#5C3A21]">
-                  <div className="w-20 h-20 bg-gradient-to-tr from-amber-300 via-orange-300 to-rose-300 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white shadow-lg animate-bounce">
-                    <span className="text-4xl">🏆</span>
+            {/* TOP ACHIEVEMENT TOAST NOTIFICATION */}
+            {achievementToast && (
+              <div
+                id="achievement-toast-notification"
+                onClick={() => {
+                  setShowAchievementsModal(true);
+                  SOUNDS.playPop(1.0);
+                }}
+                className="absolute top-4 left-4 right-4 z-50 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 p-2.5 px-3.5 rounded-2xl shadow-xl border-2 border-amber-300/90 flex items-center gap-2.5 cursor-pointer animate-fade-in select-none active:scale-95 transition-all"
+              >
+                <div className="w-8 h-8 bg-white/90 rounded-xl flex items-center justify-center shrink-0 shadow-xs">
+                  <span className="text-lg">🏆</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[7.5px] font-pixel text-slate-900/80 font-black uppercase tracking-tight">
+                    Новое достижение! 🏆
                   </div>
-                  <h2 className="text-[11px] font-pixel font-black text-amber-600 uppercase tracking-wide mb-1">
-                    🎉 ДОСТИЖЕНИЕ ПОЛУЧЕНО! 🎉
-                  </h2>
-                  <h3 className="text-sm font-pixel text-slate-800 font-extrabold uppercase mb-2 leading-snug">
-                    {unclaimedAchievementModal.title}
-                  </h3>
-                  <div className="bg-amber-100/90 p-3 rounded-2xl border border-amber-200/80 mb-4 text-left">
-                    <p className="text-[9.5px] font-pixel text-amber-900 leading-relaxed font-semibold">
-                      {unclaimedAchievementModal.desc}
-                    </p>
+                  <div className="text-[9.5px] font-pixel font-black text-slate-950 truncate uppercase mt-0.5">
+                    {achievementToast.title}
                   </div>
-                  <div className="bg-sky-100/90 border border-sky-300/80 rounded-2xl p-2.5 mb-5 text-center">
-                    <span className="text-[10px] font-pixel font-bold text-sky-900 uppercase">
-                      Награда: +{unclaimedAchievementModal.gYarnReward} Кристаллов 💎
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => {
-                        updateGoldYarn(
-                          goldYarnCount + unclaimedAchievementModal.gYarnReward,
-                        );
-                        updateClaimedAchievements([
-                          ...claimedAchievements,
-                          unclaimedAchievementModal.id,
-                        ]);
-                        setUnclaimedAchievementModal(null);
-                        SOUNDS.playSuccessColor();
-                      }}
-                      className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black py-3 rounded-2xl text-[10px] font-pixel shadow-md cursor-pointer active:scale-95 transition-all border border-amber-300 uppercase tracking-wide"
-                    >
-                      Забрать Награду! 💎
-                    </button>
-                    <button
-                      onClick={() => {
-                        setUnclaimedAchievementModal(null);
-                        SOUNDS.playPop(0.9);
-                      }}
-                      className="w-full bg-white/80 hover:bg-white text-slate-500 font-bold py-2 rounded-xl text-[9px] font-pixel cursor-pointer transition-all border border-slate-200 uppercase"
-                    >
-                      Позже 🐾
-                    </button>
-                  </div>
+                </div>
+                <div className="bg-slate-950/20 px-2 py-1 rounded-lg text-[8px] font-pixel font-bold text-slate-950 shrink-0 border border-slate-950/10">
+                  +{achievementToast.gYarnReward} 💎
                 </div>
               </div>
             )}
